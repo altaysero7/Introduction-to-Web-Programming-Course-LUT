@@ -1,4 +1,7 @@
-<!-- Referencing week 1 source code in the lecture notes -->
+<!-- Referencing week 2 source code in the lecture notes -->
+<!-- Referencing https://www.programiz.com/html/form -->
+<!-- Referencing https://www.w3schools.com/tags/att_input_type_file.asp -->
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -7,17 +10,45 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script defer src="js/app.js"></script>
-    <title>week1</title>
+    <title>week 2</title>
 </head>
 <body>
-    <h1>Hello world</h1>
-    <button id="my-button" onClick="taskTwoAndThree()" style="width: 100px; height: 100px; margin-bottom: 5px;">CLICK ME TO UPDATE THE h1 TEXT AND LOG TO THE CONSOLE!</button>
-    </br>
-    <button id="add-date" onClick="addElementViaButton()" style="width: 100px; height: 100px">ADD ARBITARY TEXT TO THE LIST!</button>
-    <ul id="my-list">
-    </ul>
-    <textarea></textarea>
-    </br>
-    <button id="add-date" onClick="addElementViaTextarea()" style="width: 100px; height: 100px">CLICK THIS TO ADD TEXT FROM THE TEXTAREA!</button>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Admin</th>
+            <th>Image</th>
+        </tr>
+        <tr>
+            <td>Webmaster</td>
+            <td>example@email.com</td>
+            <td>X</td>
+        </tr>
+        <tr>
+            <td>Webmaster2</td>
+            <td>example2@email.com</td>
+            <td>-</td>
+        </tr>
+    </table>
+    <br>
+    <form>
+        <label for="username">Username: </label>
+        <input id="input-username" type="text" name="username" required>
+        <br>
+        <label for="email">Email: </label>
+        <input id="input-email" type="text" name="email" required>
+        <br>
+        <label for="admin">Admin: </label>
+        <input id="input-admin" type="checkbox" name="admin">
+        <br>
+        <label for="image">Image: </label>
+        <input id="input-image" type="file" name="image">
+        <br>
+        <br>
+        <button id="submit-data">Submit your data!</button>
+    </form>
+    <br>
+    <button id="empty-table" onClick="emptyTable()">Empty the table!</button>
 </body>
 </html>
