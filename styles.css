@@ -1,0 +1,46 @@
+/* Referencing: https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-child */
+
+body {
+    font-family: Verdana, Arial, sans-serif;
+}
+
+td {
+    padding: 6px;
+    border-bottom: 1px solid gray;
+}
+
+th {
+    background-color: #b7d0ff;
+    font-weight: bold;
+    padding: 12px 0px 12px 6px;
+    border-bottom: 2px solid gray;
+}
+
+table {
+    border-collapse: collapse;
+    font-size: 16px;
+    text-align: left;
+}
+
+.center {
+    margin: auto;
+    padding: 60px;
+    width: 60%;
+}
+
+.center table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.center h1 {
+    text-align: center;
+}
+
+tr {
+    background-color: #ffffff;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;;
+}
