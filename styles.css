@@ -1,46 +1,54 @@
-/* Referencing: https://developer.mozilla.org/en-US/docs/Web/CSS/:nth-child */
+/* Referencing: https://getcssscan.com/css-box-shadow-examples */
 
 body {
-    font-family: Verdana, Arial, sans-serif;
+    font-family: 'Roboto', sans-serif;
+    background-color: #eceff1;
 }
 
-td {
-    padding: 6px;
-    border-bottom: 1px solid gray;
+.show-container {
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
-th {
-    background-color: #b7d0ff;
-    font-weight: bold;
-    padding: 12px 0px 12px 6px;
-    border-bottom: 2px solid gray;
-}
-
-table {
-    border-collapse: collapse;
-    font-size: 16px;
-    text-align: left;
-}
-
-.center {
-    margin: auto;
-    padding: 60px;
-    width: 60%;
-}
-
-.center table {
-    table-layout: fixed;
+.show-data {
     width: 100%;
+    background-color: #cfd8dc;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px, rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
 }
 
-.center h1 {
+.show-data h1 {
     text-align: center;
 }
 
-tr {
-    background-color: #ffffff;
+.show-data img {
+    display: block;
 }
 
-tr:nth-child(even) {
-    background-color: #f2f2f2;;
+.show-info {
+    width: 100%;
+}
+
+@media (min-width: 800px) {
+    .show-data {
+        display: flex;
+    }
+
+    .show-info {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 800px) {
+    .show-data img {
+        margin: auto;
+    }
+
+    .show-info div p {
+        text-align: center;
+        padding: 10px;
+    }
 }
