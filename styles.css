@@ -1,54 +1,9 @@
-/* Referencing: https://getcssscan.com/css-box-shadow-examples */
+/* Referencing: week 5 source code in the lecture notes */
 
-body {
-    font-family: 'Roboto', sans-serif;
-    background-color: #eceff1;
+#map {
+    height: 97vh;
 }
 
-.show-container {
-    padding-left: 10px;
-    padding-right: 10px;
-}
-
-.show-data {
-    width: 100%;
-    background-color: #cfd8dc;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    padding: 10px;
-    border-radius: 6px;
-    box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px, rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
-}
-
-.show-data h1 {
-    text-align: center;
-}
-
-.show-data img {
-    display: block;
-}
-
-.show-info {
-    width: 100%;
-}
-
-@media (min-width: 800px) {
-    .show-data {
-        display: flex;
-    }
-
-    .show-info {
-        padding: 10px;
-    }
-}
-
-@media (max-width: 800px) {
-    .show-data img {
-        margin: auto;
-    }
-
-    .show-info div p {
-        text-align: center;
-        padding: 10px;
-    }
+.leaflet-interactive:focus {
+    outline: none;
 }
