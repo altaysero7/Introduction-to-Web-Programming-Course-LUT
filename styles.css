@@ -1,9 +1,0 @@
-/* Referencing: week 5 source code in the lecture notes */
-
-#map {
-    height: 97vh;
-}
-
-.leaflet-interactive:focus {
-    outline: none;
-}

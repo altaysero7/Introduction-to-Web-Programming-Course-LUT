@@ -1,101 +1,283 @@
-// Referencing: week 5 source code in the lecture notes
+// Referencing: week 6 source code in the lecture notes
+// Referencing: https://stackoverflow.com/questions/63863408/how-do-i-switch-between-html-pages-in-javascript
+// Referencing: https://stackoverflow.com/questions/1026069/how-do-i-make-the-first-letter-of-a-string-uppercase-in-javascript
 
-async function fetchData() {
-    const urlGeoJson = 'https://geo.stat.fi/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=tilastointialueet:kunta4500k&outputFormat=json&srsName=EPSG:4326';
-    const urlPositiveMigration = 'https://statfin.stat.fi/PxWeb/sq/4bb2c735-1dc3-4c5e-bde7-2165df85e65f';
-    const urlNegativeMigration = 'https://statfin.stat.fi/PxWeb/sq/944493ca-ea4d-4fd9-a75c-4975192f7b6e';
+let populationData;
+let frappeChart;
+const areaNamesAndCodes = {};
+let inputValue;
+let titleText;
+
+const jsonQuery = {
+    "query": [
+        {
+            "code": "Vuosi",
+            "selection": {
+                "filter": "item",
+                "values": [
+                    "2000",
+                    "2001",
+                    "2002",
+                    "2003",
+                    "2004",
+                    "2005",
+                    "2006",
+                    "2007",
+                    "2008",
+                    "2009",
+                    "2010",
+                    "2011",
+                    "2012",
+                    "2013",
+                    "2014",
+                    "2015",
+                    "2016",
+                    "2017",
+                    "2018",
+                    "2019",
+                    "2020",
+                    "2021"
+                ]
+            }
+        },
+        {
+            "code": "Alue",
+            "selection": {
+                "filter": "item",
+                "values": [
+                    "SSS"
+                ]
+            }
+        },
+        {
+            "code": "Tiedot",
+            "selection": {
+                "filter": "item",
+                "values": [
+                    "vaesto"
+                ]
+            }
+        }
+    ],
+    "response": {
+        "format": "json-stat2"
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has("inputValue")) {
+        inputValue = urlParams.get("inputValue");
+    }
+    const inputArea = document.getElementById('input-area');
+    if (inputArea && inputValue && inputValue != 'whole country') {
+        inputArea.value = capitalizeString(inputValue);
+    }
+    if (window.location.pathname == "/newchart.html") {
+        matchAreaNamesAndCodes().then(() => {
+            fetchBirthAndDeathData(inputValue);
+        });
+        return;
+    } else {
+        matchAreaNamesAndCodes().then(async () => {
+            const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
+
+            populationData = await fetch(url,
+                {
+                    method: 'POST',
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify(jsonQuery)
+                }).then(res => res.json());
+
+            createChart(populationData);
+
+        });
+    }
+});
+
+const formElement = document.querySelector('form');
+const addDataElement = document.getElementById('add-data');
+
+if (formElement) {
+    formElement.addEventListener('submit', function (event) {
+        event.preventDefault();
+        inputValue = document.getElementById('input-area').value.toLowerCase();
+        fetchSearchedData(inputValue);
+    });
+}
+
+if (addDataElement) {
+    addDataElement.addEventListener('click', function () {
+        if (!frappeChart) {
+            console.log('There is no frappeChart');
+            return;
+        }
+        const predictedData = calculatePredictedDataPoint(frappeChart.data.datasets[0].values);
+        const lastYear = parseInt(frappeChart.data.labels[frappeChart.data.labels.length - 1]);
+        const nextYear = lastYear + 1;
+
+        frappeChart.data.labels.push(`${nextYear}`);
+        frappeChart.data.datasets[0].values.push(predictedData);
+        frappeChart.update();
+    });
+}
+
+document.getElementById('navigation').addEventListener('click', function (event) {
+    event.preventDefault();
+    navigate();
+});
+
+async function matchAreaNamesAndCodes() {
+    const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
 
     try {
-        const [geoData, positiveMigrationData, negativeMigrationData] = await Promise.all([
-            fetch(urlGeoJson).then(res => res.json()),
-            fetch(urlPositiveMigration).then(res => res.json()),
-            fetch(urlNegativeMigration).then(res => res.json())
-        ]);
+        const data = await fetch(url).then(res => res.json());
+        //console.log(data);
+        const names = data.variables[1].valueTexts;
+        const codes = data.variables[1].values;
 
-        const positiveMigrations = processMigrationData(positiveMigrationData, 'Tuloalue');
-        const negativeMigrations = processMigrationData(negativeMigrationData, 'Lähtöalue');
-
-        createMap(geoData, positiveMigrations, negativeMigrations);
+        names.forEach((name, index) => {
+            areaNamesAndCodes[name.toLowerCase()] = codes[index]
+        });
 
     } catch (error) {
         console.log("Error happened while fetching: ", error);
     }
 }
 
-const processMigrationData = (data, type) => {
-    const municipalities = data.dataset.dimension[type].category.label;
-    const values = data.dataset.value;
-    const migrations = {};
-
-    Object.keys(municipalities).forEach((key, index) => {
-        let municipalityName = municipalities[key];
-        municipalityName = type === 'Tuloalue' ? municipalityName.replace("Arrival - ", "") : municipalityName.replace("Departure - ", "");
-        migrations[municipalityName] = values[index];
-    });
-
-    return migrations;
+function calculatePredictedDataPoint(values) {
+    let deltaSum = 0;
+    for (let i = 1; i < values.length; i++) {
+        deltaSum += (values[i] - values[i - 1]);
+    }
+    const meanDelta = (deltaSum / (values.length - 1)) + values[values.length - 1];
+    return meanDelta;
 }
 
-function createMap(data, positiveMigrations, negativeMigrations) {
-    if (!data) {
-        return;
+function navigate() {
+    let newLocation = (window.location.pathname === "/index.html" || window.location.pathname === "/") ? "./newchart.html" : "./index.html";
+    if (inputValue) {
+        newLocation += `?inputValue=${inputValue}`;
     }
-
-    const map = L.map('map', {
-        minZoom: -3,
-    });
-
-    const geoJson = L.geoJSON(data, {
-        onEachFeature: (feature, layer) => getCustomFeature(feature, layer, positiveMigrations, negativeMigrations),
-        style: (feature) => getCustomStyle(feature, positiveMigrations, negativeMigrations),
-        weight: 2
-    }).addTo(map);
-
-    const openstreetMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap"
-    }).addTo(map);
-
-    map.fitBounds(geoJson.getBounds());
+    window.location.href = newLocation;
 }
 
-const getCustomFeature = (feature, layer, positiveMigrations, negativeMigrations) => {
-    if (!feature.properties.name) {
-        return;
+function capitalizeString(string) {
+    if (string === "whole country") {
+        return string;
     }
-
-    const municipalityName = feature.properties.name;
-    layer.bindTooltip(municipalityName);
-
-    const positiveMigrationsValues = positiveMigrations[municipalityName] || "Unknown";
-    const negativeMigrationsValues = negativeMigrations[municipalityName] || "Unknown";
-    layer.bindPopup(
-        `<ul>
-            <li>Name: ${municipalityName}</li>
-            <li>Positive migration: ${positiveMigrationsValues}</li>
-            <li>Negative migration: ${negativeMigrationsValues}</li>
-        </ul>`
-    );
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-const getCustomStyle = (feature, positiveMigrations, negativeMigrations) => {
-    if (!feature.properties.name) {
+async function fetchSearchedData(inputValue) {
+    const inputValueCode = areaNamesAndCodes[inputValue];
+    if (!inputValueCode) {
+        console.log("No result with this input");
         return;
     }
-    const municipalityName = feature.properties.name;
-    const negativeMigrationValue = negativeMigrations[municipalityName];
+    const alue = jsonQuery.query.find(item => item.code === "Alue");
+    alue.selection.values = [inputValueCode];
+    const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
 
-    if (negativeMigrationValue === 0) {
-        return {
-            color: '#FF0000',
+
+    populationData = await fetch(url,
+        {
+            method: 'POST',
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(jsonQuery)
+        }).then(res => res.json());
+
+    createChart(populationData);
+
+}
+
+async function fetchBirthAndDeathData(inputValue) {
+    if (!inputValue) {
+        inputValue = "SSS";
+    } else {
+        const inputValueCode = areaNamesAndCodes[inputValue];
+        if (!inputValueCode) {
+            console.log("No result with this input");
+            return;
         }
+        const alue = jsonQuery.query.find(item => item.code === "Alue");
+        alue.selection.values = [inputValueCode];
     }
 
-    let hue = Math.pow((positiveMigrations[municipalityName] / negativeMigrationValue), 3) * 60;
-    hue = Math.min(hue, 120);
+    const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
 
-    return {
-        color: `hsl(${hue}, 75%, 50%)`,
+    try {
+        const tiedot = jsonQuery.query.find(item => item.code === "Tiedot");
+        tiedot.selection.values = ["vm01"];
+        const birthData = await fetch(url,
+            {
+                method: 'POST',
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(jsonQuery)
+            }).then(res => res.json());
+
+        tiedot.selection.values = ["vm11"];
+        const deathData = await fetch(url,
+            {
+                method: 'POST',
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(jsonQuery)
+            }).then(res => res.json());
+
+        createBarChart(birthData, deathData);
+
+    } catch (error) {
+        console.log("Error happened while fetching: ", error);
     }
 }
 
-fetchData();
+function createChart(data) {
+    const years = Object.values(data.dimension.Vuosi.category.label);
+    const values = Object.values(data.value);
+
+    titleText = inputValue ? `Population growth in ${capitalizeString(inputValue)}` : 'Population growth in whole country';
+
+    frappeChart = new frappe.Chart("#chart", {
+        data: {
+            labels: years,
+            datasets: [
+                {
+                    name: "Population Statistics",
+                    values: values
+                }
+            ]
+        },
+        height: 450,
+        type: "line",
+        colors: ['#eb5146'],
+        title: titleText
+    });
+}
+
+function createBarChart(birthData, deathData) {
+    const years = Object.values(birthData.dimension.Vuosi.category.label);
+    const birthDataValues = Object.values(birthData.value);
+    const deathDataValues = Object.values(deathData.value);
+
+    titleText = inputValue ? `Births and death in ${capitalizeString(inputValue)}` : 'Births and death in whole country';
+
+    frappeChart = new frappe.Chart("#chart", {
+        data: {
+            labels: years,
+            datasets: [
+                {
+                    name: "Birth Statistics",
+                    values: birthDataValues
+                },
+                {
+                    name: "Death Statistics",
+                    values: deathDataValues
+                }
+            ]
+        },
+        height: 450,
+        type: "bar",
+        colors: ['#63d0ff', '#363636'],
+        title: titleText
+    });
+}
