@@ -1,283 +1,290 @@
-// Referencing: week 6 source code in the lecture notes
-// Referencing: https://stackoverflow.com/questions/63863408/how-do-i-switch-between-html-pages-in-javascript
-// Referencing: https://stackoverflow.com/questions/1026069/how-do-i-make-the-first-letter-of-a-string-uppercase-in-javascript
+// Referencing: week 7 source code in the lecture notes
+// Referencing: https://phaser.io/examples/v2/games/tanks
+// Assets: https://phaser.io/examples/v2/games/tanks && week 7 source codes
+// Referencing: https://samme.github.io/phaser-examples-mirror/games/tanks.html
 
-let populationData;
-let frappeChart;
-const areaNamesAndCodes = {};
-let inputValue;
-let titleText;
+let game;
+let tank;
 
-const jsonQuery = {
-    "query": [
-        {
-            "code": "Vuosi",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "2000",
-                    "2001",
-                    "2002",
-                    "2003",
-                    "2004",
-                    "2005",
-                    "2006",
-                    "2007",
-                    "2008",
-                    "2009",
-                    "2010",
-                    "2011",
-                    "2012",
-                    "2013",
-                    "2014",
-                    "2015",
-                    "2016",
-                    "2017",
-                    "2018",
-                    "2019",
-                    "2020",
-                    "2021"
-                ]
-            }
+const gameOptions = {
+    tankSpeed: 150
+}
+
+window.onload = function () {
+    const gameConfig = {
+        type: Phaser.AUTO,
+        backgroundColor: "#112211",
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: 800,
+            height: 600,
         },
-        {
-            "code": "Alue",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "SSS"
-                ]
-            }
+        pixelArt: true,
+        physics: {
+            default: "arcade"
         },
-        {
-            "code": "Tiedot",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "vaesto"
-                ]
-            }
-        }
-    ],
-    "response": {
-        "format": "json-stat2"
+        scene: TankGame
     }
+
+    game = new Phaser.Game(gameConfig)
+    window.focus();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("inputValue")) {
-        inputValue = urlParams.get("inputValue");
+class TankGame extends Phaser.Scene {
+    constructor() {
+        super("TankGame");
+        this.score = 0;
+        this.topScore = localStorage.getItem("topScore") || 0;
+
     }
-    const inputArea = document.getElementById('input-area');
-    if (inputArea && inputValue && inputValue != 'whole country') {
-        inputArea.value = capitalizeString(inputValue);
-    }
-    if (window.location.pathname == "/newchart.html") {
-        matchAreaNamesAndCodes().then(() => {
-            fetchBirthAndDeathData(inputValue);
+
+    preload() {
+        this.load.image("grass", "assets/dark_grass.png");
+        this.load.image("tank", "assets/tank1.png");
+        this.load.image("enemyTank", "assets/tank2.png");
+        this.load.image("bullet", "assets/bullet.png");
+        this.load.image("enemyBullet", "assets/bullet.png");
+        this.load.spritesheet("explosion", "assets/explosion.png", {
+            frameWidth: 64,
+            frameHeight: 64
         });
-        return;
-    } else {
-        matchAreaNamesAndCodes().then(async () => {
-            const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
-
-            populationData = await fetch(url,
-                {
-                    method: 'POST',
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify(jsonQuery)
-                }).then(res => res.json());
-
-            createChart(populationData);
-
-        });
+        this.load.image("star", "assets/star.png");
     }
-});
 
-const formElement = document.querySelector('form');
-const addDataElement = document.getElementById('add-data');
+    create() {
+        this.add.tileSprite(0, 0, 1600, 1200, 'grass').setOrigin(0, 0);
 
-if (formElement) {
-    formElement.addEventListener('submit', function (event) {
-        event.preventDefault();
-        inputValue = document.getElementById('input-area').value.toLowerCase();
-        fetchSearchedData(inputValue);
-    });
-}
+        tank = this.physics.add.sprite(100, game.config.height / 2, "tank");
+        tank.health = 5;
+        tank.healthText = this.add.text(tank.x, tank.y - 40, `${tank.health}/5`, { fontSize: '20px', fill: '#0000ff' }).setOrigin(0.5);
+        tank.setCollideWorldBounds(true);
 
-if (addDataElement) {
-    addDataElement.addEventListener('click', function () {
-        if (!frappeChart) {
-            console.log('There is no frappeChart');
-            return;
-        }
-        const predictedData = calculatePredictedDataPoint(frappeChart.data.datasets[0].values);
-        const lastYear = parseInt(frappeChart.data.labels[frappeChart.data.labels.length - 1]);
-        const nextYear = lastYear + 1;
+        this.cursors = this.input.keyboard.createCursorKeys();
 
-        frappeChart.data.labels.push(`${nextYear}`);
-        frappeChart.data.datasets[0].values.push(predictedData);
-        frappeChart.update();
-    });
-}
-
-document.getElementById('navigation').addEventListener('click', function (event) {
-    event.preventDefault();
-    navigate();
-});
-
-async function matchAreaNamesAndCodes() {
-    const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
-
-    try {
-        const data = await fetch(url).then(res => res.json());
-        //console.log(data);
-        const names = data.variables[1].valueTexts;
-        const codes = data.variables[1].values;
-
-        names.forEach((name, index) => {
-            areaNamesAndCodes[name.toLowerCase()] = codes[index]
+        this.enemyTanks = this.physics.add.group();
+        this.spawnTimer = this.time.addEvent({
+            delay: 1000,
+            callback: this.spawnEnemyTank,
+            callbackScope: this,
+            loop: true
         });
 
-    } catch (error) {
-        console.log("Error happened while fetching: ", error);
+        this.bullets = this.physics.add.group();
+        this.enemyBullets = this.physics.add.group();
+        this.stars = this.physics.add.group();
+
+        this.anims.create({
+            key: 'explode',
+            frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 15 }),
+            frameRate: 20,
+            repeat: 0,
+            hideOnComplete: true
+        });
+
+        this.input.on('pointerdown', this.shootBullet, this);
+
+        this.scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '32px', fill: '#ffffff' });
+        this.topScoreText = this.add.text(10, 45, 'Top Score: ' + this.topScore, { fontSize: '32px', fill: '#ffffff' });
+
+        this.instructionText = this.add.text(game.config.width - 10, 10,
+            'Arrow Keys: Move\nClick: Shoot',
+            { fontSize: '20px', fill: '#ffffff', align: 'right' }
+        );
+        this.instructionText.setOrigin(1, 0);
+        this.subtitleText = this.add.text(game.config.width, game.config.height - 50, "Destroy enemy tanks and don't let them pass!", { fontSize: '24px', fill: '#ffffff' });
+        this.tweens.add({
+            targets: this.subtitleText,
+            x: -this.subtitleText.width,
+            duration: 10000,
+            ease: 'Linear',
+            onComplete: function (tween, targets, subtitle) {
+                subtitle.destroy();
+            },
+            onCompleteParams: [this.subtitleText]
+        });
+
+        this.physics.add.collider(this.bullets, this.enemyTanks, this.bulletHitEnemy, null, this);
+        this.physics.add.collider(this.enemyBullets, tank, this.bulletHitPlayer, null, this);
+        this.physics.add.collider(tank, this.stars, this.collectStar, null, this);
     }
-}
 
-function calculatePredictedDataPoint(values) {
-    let deltaSum = 0;
-    for (let i = 1; i < values.length; i++) {
-        deltaSum += (values[i] - values[i - 1]);
+    shootBullet(pointer) {
+        const bullet = this.bullets.create(tank.x, tank.y, 'bullet');
+        this.physics.moveTo(bullet, pointer.x, pointer.y, 300);
+        this.time.addEvent({
+            delay: 2000,
+            callback: () => bullet.destroy(),
+            callbackScope: this
+        });
     }
-    const meanDelta = (deltaSum / (values.length - 1)) + values[values.length - 1];
-    return meanDelta;
-}
 
-function navigate() {
-    let newLocation = (window.location.pathname === "/index.html" || window.location.pathname === "/") ? "./newchart.html" : "./index.html";
-    if (inputValue) {
-        newLocation += `?inputValue=${inputValue}`;
-    }
-    window.location.href = newLocation;
-}
-
-function capitalizeString(string) {
-    if (string === "whole country") {
-        return string;
-    }
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-async function fetchSearchedData(inputValue) {
-    const inputValueCode = areaNamesAndCodes[inputValue];
-    if (!inputValueCode) {
-        console.log("No result with this input");
-        return;
-    }
-    const alue = jsonQuery.query.find(item => item.code === "Alue");
-    alue.selection.values = [inputValueCode];
-    const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
-
-
-    populationData = await fetch(url,
-        {
-            method: 'POST',
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(jsonQuery)
-        }).then(res => res.json());
-
-    createChart(populationData);
-
-}
-
-async function fetchBirthAndDeathData(inputValue) {
-    if (!inputValue) {
-        inputValue = "SSS";
-    } else {
-        const inputValueCode = areaNamesAndCodes[inputValue];
-        if (!inputValueCode) {
-            console.log("No result with this input");
-            return;
+    spawnEnemyTank() {
+        if (this.enemyTanks.getChildren().filter(tank => tank.active).length < 12) {
+            const enemy = this.enemyTanks.create(game.config.width - 50, Phaser.Math.Between(50, game.config.height - 50), 'enemyTank');
+            enemy.setImmovable(true);
+            enemy.health = 2;
+            enemy.healthText = this.add.text(enemy.x, enemy.y - 40, `${enemy.health}/2`, { fontSize: '20px', fill: '#ff0000' }).setOrigin(0.5);
+            enemy.setVelocityX(-Phaser.Math.Between(50, 100));
+            enemy.setCollideWorldBounds(true);
+            const shootDelay = Phaser.Math.Between(1000, 5000);
+            this.time.addEvent({
+                delay: shootDelay,
+                callback: this.enemyShoot,
+                args: [enemy],
+                callbackScope: this
+            });
         }
-        const alue = jsonQuery.query.find(item => item.code === "Alue");
-        alue.selection.values = [inputValueCode];
     }
 
-    const url = 'https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px';
-
-    try {
-        const tiedot = jsonQuery.query.find(item => item.code === "Tiedot");
-        tiedot.selection.values = ["vm01"];
-        const birthData = await fetch(url,
-            {
-                method: 'POST',
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(jsonQuery)
-            }).then(res => res.json());
-
-        tiedot.selection.values = ["vm11"];
-        const deathData = await fetch(url,
-            {
-                method: 'POST',
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(jsonQuery)
-            }).then(res => res.json());
-
-        createBarChart(birthData, deathData);
-
-    } catch (error) {
-        console.log("Error happened while fetching: ", error);
+    enemyShoot(enemy) {
+        if (enemy.active) {
+            const bullet = this.enemyBullets.create(enemy.x, enemy.y, 'enemyBullet');
+            this.physics.moveTo(bullet, tank.x, tank.y, 250);
+            this.time.addEvent({
+                delay: 2000,
+                callback: () => bullet.destroy(),
+                callbackScope: this
+            });
+        }
     }
-}
 
-function createChart(data) {
-    const years = Object.values(data.dimension.Vuosi.category.label);
-    const values = Object.values(data.value);
+    deductPointForEnemyReach(enemy) {
+        if (enemy.x <= enemy.width / 2 && enemy.active) {
+            this.score -= 1;
+            this.updateScoreDisplay();
 
-    titleText = inputValue ? `Population growth in ${capitalizeString(inputValue)}` : 'Population growth in whole country';
+            if (enemy.healthText) {
+                enemy.healthText.destroy();
+            }
+            enemy.destroy();
+        }
+    }
 
-    frappeChart = new frappe.Chart("#chart", {
-        data: {
-            labels: years,
-            datasets: [
-                {
-                    name: "Population Statistics",
-                    values: values
-                }
-            ]
-        },
-        height: 450,
-        type: "line",
-        colors: ['#eb5146'],
-        title: titleText
-    });
-}
+    updateScoreDisplay() {
+        this.scoreText.setText('Score: ' + this.score);
 
-function createBarChart(birthData, deathData) {
-    const years = Object.values(birthData.dimension.Vuosi.category.label);
-    const birthDataValues = Object.values(birthData.value);
-    const deathDataValues = Object.values(deathData.value);
+        if(this.score > this.topScore) {
+            this.topScore = this.score;
+            localStorage.setItem("topScore", this.topScore);
+            this.topScoreText.setText('Top Score: ' + this.topScore);
+        }
+    }
 
-    titleText = inputValue ? `Births and death in ${capitalizeString(inputValue)}` : 'Births and death in whole country';
+    bulletHitEnemy(bullet, enemy) {
+        bullet.destroy();
+        enemy.health -= 1;
 
-    frappeChart = new frappe.Chart("#chart", {
-        data: {
-            labels: years,
-            datasets: [
-                {
-                    name: "Birth Statistics",
-                    values: birthDataValues
+        if (enemy.health >= 0) {
+            enemy.healthText.setText(`${enemy.health}/2`);
+        }
+
+        if (enemy.health == 0) {
+            const explosion = this.add.sprite(enemy.x, enemy.y, 'explosion');
+            explosion.play('explode');
+            explosion.on('animationcomplete', () => {
+                explosion.destroy();
+            });
+
+            this.score += 1;
+            this.updateScoreDisplay();
+
+            enemy.setVelocity(0);
+            const star = this.stars.create(enemy.x, enemy.y, 'star');
+            this.time.addEvent({
+                delay: 5000,
+                callback: () => star.destroy(),
+                callbackScope: this
+            });
+
+            this.time.addEvent({
+                delay: 3000,
+                callback: () => {
+                    enemy.healthText.destroy();
+                    enemy.destroy();
                 },
-                {
-                    name: "Death Statistics",
-                    values: deathDataValues
-                }
-            ]
-        },
-        height: 450,
-        type: "bar",
-        colors: ['#63d0ff', '#363636'],
-        title: titleText
-    });
+                callbackScope: this
+            });
+        }
+    }
+
+    bulletHitPlayer(tank, bullet) {
+        bullet.destroy();
+        tank.health -= 1;
+
+        if (tank.health >= 0) {
+            tank.healthText.setText(`${tank.health}/5`);
+        }
+
+        if (tank.health == 0) {
+            const explosion = this.add.sprite(tank.x, tank.y, 'explosion');
+            explosion.play('explode');
+            explosion.on('animationcomplete', () => {
+                explosion.destroy();
+            });
+
+            this.gameOver();
+        }
+    }
+
+    collectStar(player, star) {
+        star.destroy();
+        this.score += 2;
+        this.updateScoreDisplay();
+    }
+
+    update() {
+        if (this.cursors.left.isDown) {
+            tank.setVelocityX(-gameOptions.tankSpeed);
+        }
+        else if (this.cursors.right.isDown) {
+            tank.setVelocityX(gameOptions.tankSpeed);
+        }
+        else {
+            tank.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            tank.setVelocityY(-gameOptions.tankSpeed);
+        }
+        else if (this.cursors.down.isDown) {
+            tank.setVelocityY(gameOptions.tankSpeed);
+        }
+        else {
+            tank.setVelocityY(0);
+        }
+
+        tank.healthText.x = tank.x;
+        tank.healthText.y = tank.y - 40;
+
+        this.enemyTanks.getChildren().forEach(enemy => {
+            this.deductPointForEnemyReach(enemy);
+            if (enemy.healthText) {
+                enemy.healthText.x = enemy.x;
+                enemy.healthText.y = enemy.y - 40;
+            }
+        });
+    }
+
+    gameOver() {
+        const gameOverText = this.add.text(game.config.width / 2, game.config.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#ff0000' }).setOrigin(0.5);
+        this.physics.pause();
+
+        this.input.off('pointerdown', this.shootBullet, this);
+        if (this.spawnTimer) {
+            this.spawnTimer.destroy();
+        }
+
+        if(this.score > this.topScore) {
+            this.topScore = this.score;
+            localStorage.setItem("topScore", this.topScore);
+            this.topScoreText.setText('Top Score: ' + this.topScore);
+        }
+
+        const restartButton = this.add.text(game.config.width / 2, game.config.height / 2 + 100, 'START AGAIN', { fontSize: '32px', fill: '#ffffff' }).setOrigin(0.5).setInteractive();
+        restartButton.on('pointerdown', () => {
+            this.score = 0;
+            this.scene.restart();
+        });
+    }
 }
