@@ -1,4 +1,6 @@
 // Referencing: week 5 and week 6 source codes in the lecture notes
+// Referencing: https://pxdata.stat.fi/PxWeb/pxweb/en/StatFin/StatFin__kvaa/statfin_kvaa_pxt_12g3.px/
+// Referencing: https://vaalit.yle.fi/kv2021/fi/
 
 const jsonQuery = {
     "query": [
@@ -316,22 +318,6 @@ const jsonQuery = {
                     "133854",
                     "133890",
                     "133976",
-                    "051478",
-                    "053035",
-                    "053043",
-                    "053060",
-                    "053062",
-                    "053065",
-                    "053076",
-                    "053170",
-                    "053295",
-                    "053318",
-                    "053417",
-                    "053438",
-                    "053736",
-                    "053766",
-                    "053771",
-                    "053941"
                 ]
             }
         },
@@ -370,107 +356,73 @@ const jsonQuery = {
 async function fetchData() {
     const urlGeoJson = 'https://geo.stat.fi/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=tilastointialueet:kunta4500k&outputFormat=json&srsName=EPSG:4326';
     const urlElections = 'https://pxdata.stat.fi:443/PxWeb/api/v1/en/StatFin/kvaa/statfin_kvaa_pxt_12g3.px'
-    // const urlPositiveMigration = 'https://statfin.stat.fi/PxWeb/sq/4bb2c735-1dc3-4c5e-bde7-2165df85e65f';
-    // const urlNegativeMigration = 'https://statfin.stat.fi/PxWeb/sq/944493ca-ea4d-4fd9-a75c-4975192f7b6e';
 
     try {
-        const [geoData, electionsData, positiveMigrationData, negativeMigrationData] = await Promise.all([
+        const [geoData, electionsData] = await Promise.all([
             fetch(urlGeoJson).then(res => res.json()),
             fetch(urlElections, {
                 method: 'POST',
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify(jsonQuery)
             }).then(res => res.json()),
-            // fetch(urlPositiveMigration).then(res => res.json()),
-            // fetch(urlNegativeMigration).then(res => res.json())
         ]);
-        console.log(electionsData);
 
         const electionsInfo = processElectionsData(electionsData);
-        // const positiveMigrations = processMigrationData(positiveMigrationData, 'Tuloalue');
-        // const negativeMigrations = processMigrationData(negativeMigrationData, 'Lähtöalue');
+        console.log(electionsInfo);
 
-        //createMap(geoData, positiveMigrations, negativeMigrations);
-        createMap(geoData);
+        // Pass the 'electionsInfo' to 'createMap'.
+        createMap(geoData, electionsInfo);
 
     } catch (error) {
         console.log("Error happened while fetching: ", error);
     }
 }
 
-// const processMigrationData = (data, type) => {
-//     const municipalities = data.dataset.dimension[type].category.label;
-//     const values = data.dataset.value;
-//     const migrations = {};
-
-//     Object.keys(municipalities).forEach((key, index) => {
-//         let municipalityName = municipalities[key];
-//         municipalityName = type === 'Tuloalue' ? municipalityName.replace("Arrival - ", "") : municipalityName.replace("Departure - ", "");
-//         migrations[municipalityName] = values[index];
-//     });
-
-//     return migrations;
-// }
-
 const processElectionsData = (data) => {
     const municipalities = data.dimension['Alue'].category.label;
     const parties = ['Total', 'KOK', 'SDP', 'KESK', 'PS', 'VIHR', 'VAS', 'RKP', 'KD'];
     const years = data.dimension['Vuosi'].category.label;
-    const values = data.value;
+    const electionValues = data.value;
 
-    // Number of municipalities and parties based on the provided data structure
-    const numMunicipalities = Object.keys(municipalities).length;
+    // Array of municipality keys, mapped to an object that keeps both original string and numeric representation
+    const municipalityKeys = Object.keys(municipalities).map(key => ({
+        originalKey: key,
+        numericKey: parseInt(key),
+    }));
+
+    // Sorted municipalities by their numeric key representation
+    municipalityKeys.sort((a, b) => a.numericKey - b.numericKey);
+
+    const results = {};
     const numParties = parties.length;
 
-    // Create an array of municipality keys, mapped to an object that keeps both original string and numeric representation.
-    const municipalityKeyMappings = Object.keys(municipalities).map(key => ({ originalKey: key, numericKey: parseInt(key) }));
+    // Sorted municipalities
+    municipalityKeys.forEach(({ originalKey, numericKey }, municipalityIndex) => {
+        const municipalityLabel = municipalities[originalKey];
+        const cleanMunicipalityLabel = municipalityLabel === 'Mainland Finland' ? municipalityLabel : municipalityLabel.substring(4); // Removing the first four characters (city coding)
 
-    // Sort the municipalities by their numeric key representation
-    municipalityKeyMappings.sort((a, b) => a.numericKey - b.numericKey);
-
-    // Prepare the results object
-    const results = {};
-
-    // Process the sorted municipalities
-    municipalityKeyMappings.forEach((mapping, municipalityIndex) => {
-        let municipalityName = municipalities[mapping.originalKey];
-
-        // If the municipality is not "Mainland Finland", remove the first four characters of its name
-        if (municipalityName !== 'Mainland Finland') {
-            municipalityName = municipalityName.substring(4); // Removing the first four characters
-        }
-
-        results[municipalityName] = {};
+        const municipalityResults = {};
+        results[cleanMunicipalityLabel] = municipalityResults;
 
         // For each year
         Object.values(years).forEach((year, yearIndex) => {
-            results[municipalityName][year] = {};
+            const yearResults = {};
+            municipalityResults[year] = yearResults;
 
             // For each party
             parties.forEach((party, partyIndex) => {
-                // Calculate the index in the values array. This formula is based on your described data structure.
-                const valueIndex = (
-                    yearIndex * numMunicipalities * numParties +
-                    municipalityIndex * numParties +
-                    partyIndex
-                );
+                // The index in the values array that corresponds to the party value for a specific municipality and a year
+                const indexOffset = yearIndex * municipalityKeys.length * numParties;
+                const valueIndex = indexOffset + municipalityIndex * numParties + partyIndex;
 
-                // Retrieve the value from the values array using the calculated index
-                const value = values[valueIndex];
-
-                // Store the value in the results object
-                results[municipalityName][year][party] = value;
+                yearResults[party] = electionValues[valueIndex];
             });
         });
     });
-
-    // Output the final results object
-    console.log(results);
-
     return results;
-}
+};
 
-function createMap(data) {
+function createMap(data, electionsInfo) {
     if (!data) {
         return;
     }
@@ -480,11 +432,17 @@ function createMap(data) {
     });
 
     const geoJson = L.geoJSON(data, {
-        // onEachFeature: (feature, layer) => getCustomFeature(feature, layer, positiveMigrations, negativeMigrations),
         onEachFeature: (feature, layer) => getCustomFeature(feature, layer),
-        // style: (feature) => getCustomStyle(feature, positiveMigrations, negativeMigrations),
-        style: (feature) => getCustomStyle(feature),
-        weight: 2
+        style: (feature) => {
+            const municipalityName = feature.properties.name;
+            const municipalityResults = electionsInfo[municipalityName];
+
+            if (municipalityResults) {
+                const color = getWinningPartyColor(municipalityResults);
+                return { color: color, fillColor: color, fillOpacity: 0.7, weight: 2 };
+            }
+            return { color: '#808080', fillColor: '#808080', fillOpacity: 0.7, weight: 2 };
+        }
     }).addTo(map);
 
     const openstreetMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -494,6 +452,7 @@ function createMap(data) {
     map.fitBounds(geoJson.getBounds());
 }
 
+
 const getCustomFeature = (feature, layer) => {
     if (!feature.properties.name) {
         return;
@@ -501,40 +460,58 @@ const getCustomFeature = (feature, layer) => {
 
     const municipalityName = feature.properties.name;
     layer.bindTooltip(municipalityName);
-
-    // const positiveMigrationsValues = positiveMigrations[municipalityName] || "Unknown";
-    // const negativeMigrationsValues = negativeMigrations[municipalityName] || "Unknown";
-    // layer.bindPopup(
-    //     `<ul>
-    //         <li>Name: ${municipalityName}</li>
-    //         <li>Positive migration: ${positiveMigrationsValues}</li>
-    //         <li>Negative migration: ${negativeMigrationsValues}</li>
-    //     </ul>`
-    // );
 }
 
 const getCustomStyle = (feature) => {
     return;
-
-
-    // if (!feature.properties.name) {
-    //     return;
-    // }
-    // const municipalityName = feature.properties.name;
-    // const negativeMigrationValue = negativeMigrations[municipalityName];
-
-    // if (negativeMigrationValue === 0) {
-    //     return {
-    //         color: '#FF0000',
-    //     }
-    // }
-
-    // let hue = Math.pow((positiveMigrations[municipalityName] / negativeMigrationValue), 3) * 60;
-    // hue = Math.min(hue, 120);
-
-    // return {
-    //     color: `hsl(${hue}, 75%, 50%)`,
-    // }
 }
+
+const getWinningPartyColor = (municipalityResults) => {
+    const partyColors = {
+        'KOK': '#005cb7',
+        'SDP': '#ff0606',
+        'KESK': '#209e3a',
+        'PS': '#00c2ef',
+        'VIHR': '#6bd12a',
+        'VAS': '#c60034',
+        'RKP': '#f9b800',
+        'KD': '#7946e8',
+        'Others': '#800080'  // Purple color for "Others"
+    };
+
+    const results2021 = municipalityResults['2021'];
+    let highestPercentage = 0;
+    let winningParty = '';
+    let knownPartiesTotalVotes = 0;  // Sum of votes for known parties
+
+    // Total votes for known parties
+    for (const [party, votes] of Object.entries(results2021)) {
+        if (party !== 'Total') {
+            knownPartiesTotalVotes += votes;
+        }
+    }
+
+    // Votes categorized under "Others"
+    const otherVotes = results2021['Total'] - knownPartiesTotalVotes;
+    const otherPercentage = (otherVotes / results2021['Total']) * 100;
+
+    // Finding the winning party or if "Others" have the highest percentage
+    for (const [party, votes] of Object.entries(results2021)) {
+        if (party === 'Total') continue; // Skip the 'Total' entry.
+
+        const votePercentage = (votes / results2021['Total']) * 100;
+
+        if (votePercentage > highestPercentage) {
+            highestPercentage = votePercentage;
+            winningParty = party;
+        }
+    }
+
+    if (otherPercentage > highestPercentage) {
+        winningParty = 'Others';
+    }
+
+    return partyColors[winningParty];
+};
 
 fetchData();
