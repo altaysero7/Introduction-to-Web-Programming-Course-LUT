@@ -7,3 +7,29 @@
 .leaflet-interactive:focus {
     outline: none;
 }
+
+.year-buttons {
+    position: absolute;
+    bottom: 10px;
+    z-index: 1000;
+}
+
+.year-btn {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition-duration: 0.4s;
+}
+
+.year-btn:hover {
+    background-color: white;
+    color: black;
+}

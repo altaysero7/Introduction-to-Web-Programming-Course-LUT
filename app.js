@@ -353,29 +353,60 @@ const jsonQuery = {
     }
 }
 
-async function fetchData() {
+let map;
+let geoJson;
+let selectedYear = '2021';
+let geoData;
+let allElectionData;
+
+document.addEventListener('DOMContentLoaded', async (event) => {
+    map = L.map('map', { minZoom: -3 });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    // Fetch necessary data
+    await fetchGeoData();
+    await fetchAllElectionData();
+    updateMapForYear(selectedYear);
+
+    const buttons = document.querySelectorAll('.year-btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            selectedYear = this.getAttribute('data-year');
+            updateMapForYear(selectedYear); // Change the elections data and re-create the map
+        });
+    });
+});
+
+async function fetchGeoData() {
     const urlGeoJson = 'https://geo.stat.fi/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=tilastointialueet:kunta4500k&outputFormat=json&srsName=EPSG:4326';
-    const urlElections = 'https://pxdata.stat.fi:443/PxWeb/api/v1/en/StatFin/kvaa/statfin_kvaa_pxt_12g3.px'
-
     try {
-        const [geoData, electionsData] = await Promise.all([
-            fetch(urlGeoJson).then(res => res.json()),
-            fetch(urlElections, {
-                method: 'POST',
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(jsonQuery)
-            }).then(res => res.json()),
-        ]);
-
-        const electionsInfo = processElectionsData(electionsData);
-        console.log(electionsInfo);
-
-        // Pass the 'electionsInfo' to 'createMap'.
-        createMap(geoData, electionsInfo);
-
+        const response = await fetch(urlGeoJson);
+        geoData = await response.json();
     } catch (error) {
-        console.log("Error happened while fetching: ", error);
+        console.error("Error fetching geo data: ", error);
     }
+}
+
+async function fetchAllElectionData() {
+    const urlElections = 'https://pxdata.stat.fi:443/PxWeb/api/v1/en/StatFin/kvaa/statfin_kvaa_pxt_12g3.px';
+    try {
+        const response = await fetch(urlElections, {
+            method: 'POST',
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(jsonQuery)
+        });
+        const electionsData = await response.json();
+        allElectionData = processElectionsData(electionsData);
+    } catch (error) {
+        console.error("Error fetching election data: ", error);
+    }
+}
+
+function updateMapForYear(year) {
+    createMap(geoData, allElectionData, year);
 }
 
 const processElectionsData = (data) => {
@@ -427,26 +458,22 @@ function createMap(data, electionsInfo) {
         return;
     }
 
-    const map = L.map('map', {
-        minZoom: -3,
-    });
+    if (geoJson) {
+        geoJson.remove();
+    }
 
-    const geoJson = L.geoJSON(data, {
+    geoJson = L.geoJSON(data, {
         onEachFeature: (feature, layer) => getCustomFeature(feature, layer),
         style: (feature) => {
             const municipalityName = feature.properties.name;
             const municipalityResults = electionsInfo[municipalityName];
 
             if (municipalityResults) {
-                const color = getWinningPartyColor(municipalityResults);
+                const color = getWinningPartyColor(municipalityResults, selectedYear);
                 return { color: color, fillColor: color, fillOpacity: 0.7, weight: 2 };
             }
             return { color: '#808080', fillColor: '#808080', fillOpacity: 0.7, weight: 2 };
         }
-    }).addTo(map);
-
-    const openstreetMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap"
     }).addTo(map);
 
     map.fitBounds(geoJson.getBounds());
@@ -466,7 +493,7 @@ const getCustomStyle = (feature) => {
     return;
 }
 
-const getWinningPartyColor = (municipalityResults) => {
+const getWinningPartyColor = (municipalityResults, year) => {
     const partyColors = {
         'KOK': '#005cb7',
         'SDP': '#ff0606',
@@ -479,7 +506,7 @@ const getWinningPartyColor = (municipalityResults) => {
         'Others': '#800080'  // Purple color for "Others"
     };
 
-    const results2021 = municipalityResults['2021'];
+    const results2021 = municipalityResults[year];
     let highestPercentage = 0;
     let winningParty = '';
     let knownPartiesTotalVotes = 0;  // Sum of votes for known parties
@@ -513,5 +540,3 @@ const getWinningPartyColor = (municipalityResults) => {
 
     return partyColors[winningParty];
 };
-
-fetchData();
