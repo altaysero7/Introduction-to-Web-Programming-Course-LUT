@@ -385,13 +385,49 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     updateMapForYear(selectedYear);
     createMapLegend();
 
-    const buttons = document.querySelectorAll('.year-btn');
-    buttons.forEach(button => {
+    const yearButtons = document.querySelectorAll('.year-btn');
+    yearButtons.forEach(button => {
         button.addEventListener('click', function () {
             selectedYear = this.getAttribute('data-year');
             updateMapForYear(selectedYear); // Change the elections data and re-create the map
         });
     });
+
+    // Back button event listener
+    document.getElementById('back-button').addEventListener('click', function () {
+        // Hide charts and 'Back' button
+        document.getElementById('charts').style.display = 'none';
+        this.style.display = 'none';
+
+        // Show the map and other elements again
+        document.getElementById('map').style.display = 'block';
+        document.getElementById('map-legend').style.display = 'block';
+        document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'block');
+
+        if (history.state && history.state.municipality) {
+            history.back(); // Revert to previous state
+        } else {
+            // Cleaning up the URL to its base form without any query parameters
+            const originalLocation = location.protocol + '//' + location.host + location.pathname;
+            history.replaceState(null, "", originalLocation); // Replaces the current history entry with the original location
+        }
+    });
+});
+
+self.addEventListener('popstate', function(event) {
+    if (event.state && event.state.municipality) {
+        // If there's a municipality in the state, display its data.
+        displayMunicipalityData(event.state.municipality);
+    } else {
+        // Hiding charts and 'Back' button
+        document.getElementById('charts').style.display = 'none';
+        document.getElementById('back-button').style.display = 'none';
+
+        // Showing the map and other elements again
+        document.getElementById('map').style.display = 'block';
+        document.getElementById('map-legend').style.display = 'block';
+        document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'block');
+    }
 });
 
 async function fetchGeoData() {
@@ -500,6 +536,29 @@ const getCustomFeature = (feature, layer) => {
 
     const municipalityName = feature.properties.name;
     layer.bindTooltip(municipalityName);
+
+    // Added: click event to display municipality data
+    layer.on('click', function () {
+        displayMunicipalityData(municipalityName);
+
+        const newUrlPath = '?municipality=' + encodeURIComponent(municipalityName);
+        history.pushState({ municipality: municipalityName }, "", newUrlPath);
+    });
+}
+
+function displayMunicipalityData(municipalityName) {
+    // Hide map and other elements
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('map-legend').style.display = 'none';
+    document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'none');
+
+    const chartsContainer = document.getElementById('charts');
+    chartsContainer.innerHTML = `<h2>Data for ${municipalityName}</h2><p>...charts go here...</p>`;
+    chartsContainer.style.display = 'block';
+
+    // Show the 'Back' button
+    const backButton = document.getElementById('back-button');
+    backButton.style.display = 'block';
 }
 
 function createMapLegend() {
@@ -578,7 +637,7 @@ const getWinningPartyColor = (municipalityResults, year) => {
         winningParty = 'Others';
     }
 
-    if (winningParty === '') return '#808080'; // no data available
+    if (winningParty === '') return '#808080'; // No data available
 
     return partiesInfo[winningParty].color;
 };
