@@ -356,16 +356,17 @@ const jsonQuery = {
 
 let map;
 let geoJson;
-const partyColors = {
-    'KOK': '#005cb7',
-    'SDP': '#ff0606',
-    'KESK': '#209e3a',
-    'PS': '#00c2ef',
-    'VIHR': '#6bd12a',
-    'VAS': '#c60034',
-    'RKP': '#f9b800',
-    'KD': '#7946e8',
-    'Others': '#800080'
+const partiesInfo = {
+    'KOK': { color: '#005cb7', wikiLink: 'https://en.wikipedia.org/wiki/National_Coalition_Party' },
+    'SDP': { color: '#ff0606', wikiLink: 'https://en.wikipedia.org/wiki/Social_Democratic_Party_of_Finland' },
+    'KESK': { color: '#209e3a', wikiLink: 'https://en.wikipedia.org/wiki/Centre_Party_(Finland)' },
+    'PS': { color: '#00c2ef', wikiLink: 'https://en.wikipedia.org/wiki/Finns_Party' },
+    'VIHR': { color: '#6bd12a', wikiLink: 'https://en.wikipedia.org/wiki/Green_League' },
+    'VAS': { color: '#c60034', wikiLink: 'https://en.wikipedia.org/wiki/Left_Alliance_(Finland)' },
+    'RKP': { color: '#f9b800', wikiLink: 'https://en.wikipedia.org/wiki/Swedish_People%27s_Party_of_Finland' },
+    'KD': { color: '#7946e8', wikiLink: 'https://en.wikipedia.org/wiki/Christian_Democrats_(Finland)' },
+    'Others': { color: '#800080' },
+    'No data': { color: '#808080' }
 };
 let selectedYear = '2021';
 let geoData;
@@ -386,7 +387,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
     const buttons = document.querySelectorAll('.year-btn');
     buttons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             selectedYear = this.getAttribute('data-year');
             updateMapForYear(selectedYear); // Change the elections data and re-create the map
         });
@@ -492,7 +493,6 @@ function createMap(data, electionsInfo) {
     map.fitBounds(geoJson.getBounds());
 }
 
-
 const getCustomFeature = (feature, layer) => {
     if (!feature.properties.name) {
         return;
@@ -500,10 +500,6 @@ const getCustomFeature = (feature, layer) => {
 
     const municipalityName = feature.properties.name;
     layer.bindTooltip(municipalityName);
-}
-
-const getCustomStyle = (feature) => {
-    return;
 }
 
 function createMapLegend() {
@@ -517,19 +513,34 @@ function createMapLegend() {
     divider.className = 'map-legend-divider';
     legendContainer.appendChild(divider);
 
-    for (const [party, color] of Object.entries(partyColors)) {
+    for (const [party, partyInfo] of Object.entries(partiesInfo)) {
         const legendKey = document.createElement('div');
         legendKey.className = 'map-legend-key';
 
         const colorBox = document.createElement('div');
-        colorBox.style.backgroundColor = color;
+        colorBox.style.backgroundColor = partyInfo.color;
         colorBox.className = 'map-legend-color';
 
-        const partyName = document.createElement('span');
-        partyName.textContent = party;
-
         legendKey.appendChild(colorBox);
-        legendKey.appendChild(partyName);
+
+        if (party === 'Others' || party === 'No data') {
+            const partyName = document.createElement('span');
+            partyName.textContent = party;
+            legendKey.appendChild(partyName);
+        } else {
+            const partyLink = document.createElement('a');
+            partyLink.href = partyInfo.wikiLink;
+            partyLink.textContent = party;
+            partyLink.target = '_blank'; // Open in a new tab.
+            const linkIcon = document.createElement('i');
+            linkIcon.className = 'fas fa-external-link-alt';
+
+            // Appending the text and the icon to the link element
+            partyLink.appendChild(linkIcon);
+
+            legendKey.appendChild(partyLink);
+        }
+
         legendContainer.appendChild(legendKey);
     }
 }
@@ -567,5 +578,7 @@ const getWinningPartyColor = (municipalityResults, year) => {
         winningParty = 'Others';
     }
 
-    return partyColors[winningParty];
+    if (winningParty === '') return '#808080'; // no data available
+
+    return partiesInfo[winningParty].color;
 };
