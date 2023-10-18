@@ -1,6 +1,7 @@
 // Referencing: week 5 and week 6 source codes in the lecture notes
 // Referencing: https://pxdata.stat.fi/PxWeb/pxweb/en/StatFin/StatFin__kvaa/statfin_kvaa_pxt_12g3.px/
 // Referencing: https://vaalit.yle.fi/kv2021/fi/
+// Referencing: https://gisgeography.com/map-legend/
 
 const jsonQuery = {
     "query": [
@@ -355,6 +356,17 @@ const jsonQuery = {
 
 let map;
 let geoJson;
+const partyColors = {
+    'KOK': '#005cb7',
+    'SDP': '#ff0606',
+    'KESK': '#209e3a',
+    'PS': '#00c2ef',
+    'VIHR': '#6bd12a',
+    'VAS': '#c60034',
+    'RKP': '#f9b800',
+    'KD': '#7946e8',
+    'Others': '#800080'
+};
 let selectedYear = '2021';
 let geoData;
 let allElectionData;
@@ -370,6 +382,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     await fetchGeoData();
     await fetchAllElectionData();
     updateMapForYear(selectedYear);
+    createMapLegend();
 
     const buttons = document.querySelectorAll('.year-btn');
     buttons.forEach(button => {
@@ -493,19 +506,35 @@ const getCustomStyle = (feature) => {
     return;
 }
 
-const getWinningPartyColor = (municipalityResults, year) => {
-    const partyColors = {
-        'KOK': '#005cb7',
-        'SDP': '#ff0606',
-        'KESK': '#209e3a',
-        'PS': '#00c2ef',
-        'VIHR': '#6bd12a',
-        'VAS': '#c60034',
-        'RKP': '#f9b800',
-        'KD': '#7946e8',
-        'Others': '#800080'  // Purple color for "Others"
-    };
+function createMapLegend() {
+    const legendContainer = document.getElementById('map-legend');
 
+    const legendTitle = document.createElement('div');
+    legendTitle.innerHTML = '<strong>Party Colors</strong>';
+    legendContainer.appendChild(legendTitle);
+
+    const divider = document.createElement('div');
+    divider.className = 'map-legend-divider';
+    legendContainer.appendChild(divider);
+
+    for (const [party, color] of Object.entries(partyColors)) {
+        const legendKey = document.createElement('div');
+        legendKey.className = 'map-legend-key';
+
+        const colorBox = document.createElement('div');
+        colorBox.style.backgroundColor = color;
+        colorBox.className = 'map-legend-color';
+
+        const partyName = document.createElement('span');
+        partyName.textContent = party;
+
+        legendKey.appendChild(colorBox);
+        legendKey.appendChild(partyName);
+        legendContainer.appendChild(legendKey);
+    }
+}
+
+const getWinningPartyColor = (municipalityResults, year) => {
     const results2021 = municipalityResults[year];
     let highestPercentage = 0;
     let winningParty = '';
