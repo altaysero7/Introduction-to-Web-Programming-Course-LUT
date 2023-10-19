@@ -11,7 +11,7 @@
 
 #map-legend {
     position: absolute;
-    bottom: 60px;
+    bottom: 130px;
     right: 10px;
     background-color: rgba(255, 255, 255, 0.8);
     padding: 10px;
@@ -52,15 +52,29 @@
     margin-right: 5px;
 }
 
-.year-buttons {
-    background-color: black;
+#year-selector {
     position: absolute;
-    bottom: 10px;
+    bottom: 26px;
+    left: 18px;
     z-index: 1000;
+    background-color: #FFFFFF;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+}
+
+#year-label {
+    font-family: 'Roboto', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    text-align: center;
 }
 
 .year-btn {
-    background-color: #4CAF50;
+    background-color: #002F6C;
     border: none;
     color: white;
     padding: 10px 20px;
@@ -68,13 +82,21 @@
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
-    margin: 4px 2px;
+    margin: 3px;
     cursor: pointer;
     border-radius: 8px;
     transition-duration: 0.4s;
 }
 
 .year-btn:hover {
-    background-color: white;
-    color: black;
+    background-color: #00449c;
+    color: white;
+}
+
+#charts {
+    display: none;
+}
+
+#back-button {
+    display: none;
 }

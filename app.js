@@ -2,6 +2,8 @@
 // Referencing: https://pxdata.stat.fi/PxWeb/pxweb/en/StatFin/StatFin__kvaa/statfin_kvaa_pxt_12g3.px/
 // Referencing: https://vaalit.yle.fi/kv2021/fi/
 // Referencing: https://gisgeography.com/map-legend/
+// Referencing: https://www.highcharts.com/blog/tutorials/the-optimal-way-to-visualize-the-composition-of-any-political-or-legislative-body/
+// Referencing: https://commons.wikimedia.org/wiki/File:Flag_of_Finland.svg
 
 const jsonQuery = {
     "query": [
@@ -384,12 +386,18 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     await fetchAllElectionData();
     updateMapForYear(selectedYear);
     createMapLegend();
+    const mainlandFinlandResultsControl = createMainlandFinlandResultsControl();
+    map.addControl(mainlandFinlandResultsControl);
+    updateMainlandFinlandResults()
+    const flagControl = createFlagControl();
+    flagControl.addTo(map);
 
     const yearButtons = document.querySelectorAll('.year-btn');
     yearButtons.forEach(button => {
         button.addEventListener('click', function () {
             selectedYear = this.getAttribute('data-year');
             updateMapForYear(selectedYear); // Change the elections data and re-create the map
+            updateMainlandFinlandResults()
         });
     });
 
@@ -403,6 +411,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         document.getElementById('map').style.display = 'block';
         document.getElementById('map-legend').style.display = 'block';
         document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'block');
+        document.getElementById('year-selector').style.display = 'block';
 
         if (history.state && history.state.municipality) {
             history.back(); // Revert to previous state
@@ -414,10 +423,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     });
 });
 
-self.addEventListener('popstate', function(event) {
+self.addEventListener('popstate', function (event) {
     if (event.state && event.state.municipality) {
-        // If there's a municipality in the state, display its data.
-        displayMunicipalityData(event.state.municipality);
+        history.back();
     } else {
         // Hiding charts and 'Back' button
         document.getElementById('charts').style.display = 'none';
@@ -427,6 +435,7 @@ self.addEventListener('popstate', function(event) {
         document.getElementById('map').style.display = 'block';
         document.getElementById('map-legend').style.display = 'block';
         document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'block');
+        document.getElementById('year-selector').style.display = 'block';
     }
 });
 
@@ -500,6 +509,7 @@ const processElectionsData = (data) => {
             });
         });
     });
+    console.log(results);
     return results;
 };
 
@@ -537,13 +547,156 @@ const getCustomFeature = (feature, layer) => {
     const municipalityName = feature.properties.name;
     layer.bindTooltip(municipalityName);
 
-    // Added: click event to display municipality data
-    layer.on('click', function () {
-        displayMunicipalityData(municipalityName);
+    if (municipalityHasData(municipalityName)) {
+        // Add the click event listener only if there's data
+        layer.on('click', function () {
+            displayMunicipalityData(municipalityName);
 
-        const newUrlPath = '?municipality=' + encodeURIComponent(municipalityName);
-        history.pushState({ municipality: municipalityName }, "", newUrlPath);
+            const newUrlPath = '?municipality=' + encodeURIComponent(municipalityName);
+            history.pushState({ municipality: municipalityName }, "", newUrlPath);
+        });
+    } else {
+        layer.on('mouseover', function () {
+            this._path.style.cursor = 'not-allowed';
+        });
+
+        layer.on('click', function (e) {
+            const tooltip = L.tooltip()
+                .setContent('No data to be shown')
+                .setLatLng(e.latlng) // Binding the info to the layer's current position
+                .addTo(map);
+
+            this.bindTooltip(tooltip);
+        });
+
+        layer.on('mouseout', function () {
+            this.bindTooltip(municipalityName);
+        });
+    }
+};
+
+function municipalityHasData(municipalityName) {
+    const dataForMunicipality = allElectionData[municipalityName];
+    return dataForMunicipality && Object.keys(dataForMunicipality).length > 0;
+}
+
+function createMainlandFinlandResultsControl() {
+    // Custom control for election results
+    const ElectionResultsControl = L.Control.extend({
+        options: {
+            position: 'topright' // position in the map
+        },
+
+        onAdd: function (map) {
+            // Create the control container with a particular class name and enhanced styling
+            const container = L.DomUtil.create('div', 'election-results-control');
+
+            // Adjust styles for a smaller, more compact container
+            Object.assign(container.style, {
+                backgroundColor: '#f9f9f9', // softer color
+                width: '150px', // reduced width for a smaller control
+                height: '300px',
+                padding: '5px 10px', // reduced padding for a more compact layout
+                border: '1px solid', // thinner border
+                borderRadius: '5px', // smaller border radius
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)', // less pronounced shadow
+                color: '#333', // same color, good for readability
+                fontSize: '12px', // smaller font size
+                overflow: 'hidden', // ensure no internal content spills out
+            });
+
+            // Smaller header
+            const header = document.createElement('div');
+            header.id = 'results-header'; // Assign an ID to the header
+            header.textContent = `Finland Results for ${selectedYear}`; // Set initial text
+            header.style.fontWeight = 'bold';
+            container.appendChild(header);
+
+            // Placeholder for results, no change here
+            const resultsContainer = document.createElement('div');
+            resultsContainer.id = 'mainland-finland-results';
+            container.appendChild(resultsContainer);
+
+            return container;
+        }
     });
+
+    return new ElectionResultsControl();
+}
+
+// Function to update results with enhanced content formatting
+function updateMainlandFinlandResults() {
+    const mainlandResults = allElectionData['Mainland Finland'][selectedYear];
+    let totalVotes = 0;
+    const partyResults = {};
+
+    for (const party in mainlandResults) {
+        if (party !== 'Total') {
+            const votes = mainlandResults[party];
+            totalVotes += votes;
+            partyResults[party] = votes;
+        }
+    }
+
+    // Generate content with styling for a more compact view
+    const header = document.getElementById('results-header');
+    if (header) {
+        header.textContent = `Finland Results for ${selectedYear}`; // Update to the current year
+    }
+
+    let contentHTML = '<div style="margin-top: 5px;">'; // Container for content, add a top margin for spacing
+    for (const party in partyResults) {
+        const percentage = ((partyResults[party] / totalVotes) * 100).toFixed(2);
+        // Create a row for each party result, include a border-bottom, and align text to the left (party name) and right (percentage)
+        contentHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding: 2px 0;">
+                <span><strong>${party}</strong></span>
+                <span>${percentage}%</span>
+            </div>`;
+    }
+    contentHTML += '</div>';
+
+    // Smaller pie chart or even consider excluding it for saving space
+    contentHTML += '<div id="mini-pie-chart" style="height: 100px; width: 150px;"></div>'; // smaller pie chart
+
+    // Update the control container with the compact content
+    const resultsContainer = document.getElementById('mainland-finland-results');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = contentHTML;
+
+        // Adjust pie chart size when calling the creation function
+        createPieChart('mini-pie-chart', 'Mainland Finland'); // ensure your pie chart adjusts to new dimensions
+    }
+}
+
+function createFlagControl() {
+    const FlagControl = L.Control.extend({
+        options: {
+            position: 'bottomleft' // the position of the control on the map
+        },
+
+        onAdd: function(map) {
+            // create a div with a class "flag-icon"
+            const container = L.DomUtil.create('div', 'flag-icon');
+
+            // create an image tag inside the div
+            const img = L.DomUtil.create('img', '', container);
+
+            // set the src attribute to the image's URL
+            img.src = './images/Flag_of_Finland.svg';  // put the URL or relative path of your flag image here
+            img.style.width = '100px'; // or the size you prefer
+            img.style.height = '75px'; // or the size you prefer
+            img.style.paddingBottom = '85%'; // or the size you prefer50px'; // or the size you prefer
+
+            // Prevent events from getting to the map through the flag (clicks, scrolls, etc.)
+            L.DomEvent.disableClickPropagation(container);
+            L.DomEvent.disableScrollPropagation(container);
+
+            return container;
+        }
+    });
+
+    return new FlagControl();
 }
 
 function displayMunicipalityData(municipalityName) {
@@ -551,14 +704,305 @@ function displayMunicipalityData(municipalityName) {
     document.getElementById('map').style.display = 'none';
     document.getElementById('map-legend').style.display = 'none';
     document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'none');
+    document.getElementById('year-selector').style.display = 'none';
 
+    // Get the main container for charts and clear any previous content
     const chartsContainer = document.getElementById('charts');
-    chartsContainer.innerHTML = `<h2>Data for ${municipalityName}</h2><p>...charts go here...</p>`;
+    chartsContainer.innerHTML = '';
+
+    // Create separate containers for the pie chart and the bar chart
+    const pieChartContainer = document.createElement('div');
+    pieChartContainer.id = 'pie-chart-container';  // Set an ID for possible future reference
+    chartsContainer.appendChild(pieChartContainer);
+
+    const barChartContainer = document.createElement('div');
+    barChartContainer.id = 'bar-chart-container';  // Set an ID for possible future reference
+    chartsContainer.appendChild(barChartContainer);
+
+    const timeSeriesChartContainer = document.createElement('div');
+    timeSeriesChartContainer.id = 'time-series-chart-container';  // Set an ID for possible future reference
+    chartsContainer.appendChild(timeSeriesChartContainer);
+
+    const stackedAreaChartContainer = document.createElement('div');
+    stackedAreaChartContainer.id = 'stacked-area-chart-container';  // Set an ID for possible future reference
+    chartsContainer.appendChild(stackedAreaChartContainer);
+
+    // Create and display the charts in their respective containers
+    createPieChart(pieChartContainer, municipalityName); // existing pie chart
+    createBarChart(barChartContainer, municipalityName); // new bar chart
+    createTimeSeriesChart(timeSeriesChartContainer, municipalityName);
+    createStackedAreaChart(stackedAreaChartContainer, municipalityName);
+
+    // Make the main container visible
     chartsContainer.style.display = 'block';
 
     // Show the 'Back' button
     const backButton = document.getElementById('back-button');
     backButton.style.display = 'block';
+}
+
+function createPieChart(container, municipalityName) {
+    const municipalityData = allElectionData[municipalityName][selectedYear];
+    const data = [];
+
+    // Prepare the data for Highcharts
+    Object.entries(municipalityData).forEach(([party, voteCount]) => {
+        if (party !== 'Total') {
+            data.push({
+                name: party,
+                y: voteCount,
+                color: partiesInfo[party].color, // assuming color information is stored here
+            });
+        }
+    });
+
+    // Create the Highcharts chart
+    Highcharts.chart(container, {
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false,
+            type: 'pie',
+            height: container === 'mini-pie-chart' ? 90 : null,
+        },
+        title: {
+            text: container === 'mini-pie-chart' ? "" : `Election Results for ${municipalityName}`
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>' // Optional: if you want to show percentages in the tooltip as well
+        },
+        accessibility: {
+            point: {
+                valueSuffix: '%' // Optional: for screen readers
+            }
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: container === 'mini-pie-chart' ? false :true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %', // Format the data label to show the percentage
+                    connectorColor: 'silver'
+                }
+            }
+        },
+        series: [{
+            name: 'Share',
+            data: data
+        }]
+    });
+}
+
+function createBarChart(container, municipalityName) {
+    const municipalityData = allElectionData[municipalityName][selectedYear];
+    const categories = [];
+    const data = [];
+
+    Object.entries(municipalityData).forEach(([party, voteCount]) => {
+        if (party !== 'Total') {
+            categories.push(party);
+            data.push({
+                name: party,
+                y: voteCount,
+                color: partiesInfo[party].color, // assuming color information is stored here
+            });
+        }
+    });
+
+    Highcharts.chart(container, {
+        chart: {
+            type: 'bar'
+        },
+        title: {
+            text: ""
+        },
+        xAxis: {
+            categories: categories,
+            title: {
+                text: null
+            }
+        },
+        yAxis: {
+            min: 0,
+            title: {
+                text: 'Votes',
+                align: 'high'
+            },
+            labels: {
+                overflow: 'justify'
+            }
+        },
+        plotOptions: {
+            bar: {
+                dataLabels: {
+                    enabled: true
+                }
+            }
+        },
+        legend: {
+            enabled: false
+        },
+        series: [{
+            name: 'Votes',
+            data: data
+        }]
+    });
+}
+
+function createTimeSeriesChart(container, municipalityName) {
+    const municipalityData = allElectionData[municipalityName]; // Data for the specific municipality
+
+    // Extracting all the years available for the municipality data
+    const categories = Object.keys(municipalityData).sort();
+
+    // Prepare the series array that will contain each party's data
+    const series = [];
+
+    // Get all parties from the first available year (assuming consistent parties across years)
+    const firstYearParties = Object.keys(municipalityData[categories[0]]);
+    const parties = firstYearParties.filter(party => party !== 'Total'); // Exclude 'Total'
+
+    parties.forEach(party => {
+        const data = categories.map(year => {
+            const totalVotes = municipalityData[year]['Total'] || 1; // to avoid division by zero
+            const partyVotes = municipalityData[year][party] || 0; // Return vote count or 0 if no data exists
+            const percentage = (partyVotes / totalVotes * 100).toFixed(2); // Calculate percentage
+
+            return {
+                y: partyVotes,
+                percentage: percentage
+            };
+        });
+
+        series.push({
+            name: party,
+            data: data,
+            color: partiesInfo[party].color, // Assign the color from your partiesInfo
+        });
+    });
+
+    // Create the chart with Highcharts
+    Highcharts.chart(container, {
+        chart: {
+            type: 'line'
+        },
+        title: {
+            text: `Voting Trends in ${municipalityName}`
+        },
+        xAxis: {
+            categories: categories,
+            crosshair: true,
+            title: {
+                text: 'Year'
+            }
+        },
+        yAxis: {
+            min: 0,
+            title: {
+                text: 'Number of Votes'
+            },
+            labels: {
+                format: '{value}' // to ensure that vote counts are displayed as integers on the yAxis
+            }
+        },
+        tooltip: {
+            headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+            pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+                '<td style="padding:0"><b>{point.y} votes ({point.percentage}%)</b></td></tr>',
+            footerFormat: '</table>',
+            shared: true,
+            useHTML: true
+        },
+        plotOptions: {
+            line: {
+                dataLabels: {
+                    enabled: true,
+                    formatter: function () {
+                        return `${this.y} (${this.point.percentage}%)`; // Display both vote count and percentage
+                    }
+                },
+                enableMouseTracking: true
+            }
+        },
+        series: series
+    });
+}
+
+function createStackedAreaChart(container, municipalityName) {
+    const municipalityData = allElectionData[municipalityName]; // Data for the specific municipality
+
+    // Extracting all the years available for the municipality data
+    const categories = Object.keys(municipalityData).sort();
+
+    // Prepare the series array that will contain each party's data
+    const series = [];
+
+    // Get all parties from the first available year (assuming consistent parties across years)
+    const firstYearParties = Object.keys(municipalityData[categories[0]]);
+    const parties = firstYearParties.filter(party => party !== 'Total'); // Exclude 'Total'
+
+    parties.forEach(party => {
+        const data = categories.map(year => {
+            const partyVotes = municipalityData[year][party] || 0; // Return vote count or 0 if no data exists
+            return partyVotes; // For stacked charts, we're interested in absolute numbers, not percentages
+        });
+
+        series.push({
+            name: party,
+            data: data,
+            color: partiesInfo[party].color, // Assign the color from your partiesInfo
+        });
+    });
+
+    // Create the chart with Highcharts
+    Highcharts.chart(container, {
+        chart: {
+            type: 'area', // This defines the chart as a stacked area chart
+            zoomType: 'x', // Allow zooming in the x direction (optional)
+        },
+        title: {
+            text: `Party Vote Proportions in ${municipalityName}`
+        },
+        xAxis: {
+            categories: categories,
+            tickmarkPlacement: 'on',
+            title: {
+                text: 'Year'
+            }
+        },
+        yAxis: {
+            title: {
+                text: 'Number of Votes'
+            },
+            stackLabels: {
+                enabled: true,
+                style: {
+                    fontWeight: 'bold',
+                    color: ( // theme
+                        Highcharts.defaultOptions.title.style &&
+                        Highcharts.defaultOptions.title.style.color
+                    ) || 'gray'
+                }
+            }
+        },
+        tooltip: {
+            split: true,
+            valueSuffix: ' votes'
+        },
+        plotOptions: {
+            area: {
+                stacking: 'normal', // This option sets the stacking
+                lineColor: '#ffffff',
+                lineWidth: 1,
+                marker: {
+                    lineWidth: 1,
+                    lineColor: '#ffffff'
+                }
+            }
+        },
+        series: series
+    });
 }
 
 function createMapLegend() {
