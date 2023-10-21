@@ -1,4 +1,4 @@
-// Referencing: week 5 and week 6 source codes in the lecture notes
+// Referencing: week 5, week 6, and week 7 source codes in the lecture notes
 // Referencing: https://pxdata.stat.fi/PxWeb/pxweb/en/StatFin/StatFin__kvaa/statfin_kvaa_pxt_12g3.px/
 // Referencing: https://vaalit.yle.fi/kv2021/fi/
 // Referencing: https://gisgeography.com/map-legend/
@@ -719,6 +719,7 @@ let positiveMigrationsData;
 let negativeMigrationsData;
 const upcomingElections = [2025, 2029];
 let currentPredictionIndex = 0;
+let partyLogos = ['./images/Nationale_Sammlungspartei_(Finnland)_logo.png', './images/Sozialdemokratische_Partei_Finnlands_Logo.png', './images/Keskusta.png', './images/Perussuomalaiset_Logo.png', './images/Vihreät.png', './images/Vasemmistoliitto_Logo_2018.png', "./images/Swedish_People's_Party_of_Finland_logo.png", './images/Christian_Democrats_(Finland)_logo_2022.png']
 
 document.addEventListener('DOMContentLoaded', async (event) => {
     map = L.map('map', { minZoom: -3 });
@@ -748,7 +749,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         });
     });
 
-    document.getElementById('predict-button').addEventListener('click', function() {
+    document.getElementById('predict-button').addEventListener('click', function () {
         if (currentPredictionIndex < upcomingElections.length) {
             const yearToPredict = upcomingElections[currentPredictionIndex];
             predictNextElection(yearToPredict);
@@ -1048,7 +1049,7 @@ function predictNextElection(yearToPredict) {
     newButton.classList.add("year-btn", "new-predicted-btn");
     newButton.setAttribute("data-year", yearToPredict);
 
-    newButton.addEventListener('click', function() {
+    newButton.addEventListener('click', function () {
         selectedYear = this.getAttribute('data-year');
         updateMapForYear(selectedYear);  // changing the elections data and re-creating the map
         updateMainlandFinlandResults();
@@ -1278,6 +1279,18 @@ function displayMunicipalityData(municipalityName) {
     const chartsContainer = document.getElementById('charts');
     chartsContainer.innerHTML = '';
 
+    const rainCanvas = document.createElement('canvas');
+    rainCanvas.id = 'rain-canvas';
+    rainCanvas.width = chartsContainer.offsetWidth;
+    rainCanvas.height = chartsContainer.offsetHeight;
+    rainCanvas.style.position = 'fixed';
+    rainCanvas.style.top = '0';
+    rainCanvas.style.left = '0';
+    rainCanvas.style.zIndex = '1';
+    chartsContainer.appendChild(rainCanvas);
+
+    initializeRainingEffect(rainCanvas.id);
+
     const pieChartContainer = document.createElement('div');
     pieChartContainer.id = 'pie-chart-container';
     chartsContainer.appendChild(pieChartContainer);
@@ -1314,6 +1327,67 @@ function displayMunicipalityData(municipalityName) {
     chartsContainer.style.display = 'block';
     const backButton = document.getElementById('back-button');
     backButton.style.display = 'block';
+}
+
+// mostly from the matrix rain tutorial in week 7
+function initializeRainingEffect(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    const context = canvas.getContext("2d");
+
+    function setCanvasSize() {
+        // covering the full page
+        canvas.width = document.documentElement.clientWidth;
+        canvas.height = document.documentElement.scrollHeight;
+    }
+
+    setCanvasSize();
+
+    self.addEventListener('resize', function() {
+        setCanvasSize();
+
+        logos.forEach(logoObj => {
+            logoObj.x = Math.random() * canvas.width;
+            logoObj.y = Math.random() * canvas.height - canvas.height;
+        });
+    });
+
+    const numLogos = 20;
+    const logos = [];
+    const fixedFallSpeed = 0.1;
+    const fixedSideSpeed = 0;
+    const scale = 0.1;
+
+    for (let i = 0; i < numLogos; i++) {
+        const logo = new Image();
+        logo.src = partyLogos[i % partyLogos.length];
+        logo.onload = createRain;
+        logos.push({
+            image: logo,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            vx: fixedSideSpeed,
+            vy: fixedFallSpeed,
+        });
+    }
+
+    function createRain() {
+        context.fillStyle = "rgba(0,0,0,0.1)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        logos.forEach(logoObj => {
+            const logo = logoObj.image;
+            context.drawImage(logo, logoObj.x, logoObj.y, logo.width * scale, logo.height * scale);
+
+            logoObj.x += logoObj.vx;
+            logoObj.y += logoObj.vy;
+
+            if (logoObj.y > canvas.height) {
+                logoObj.x = Math.random() * canvas.width;
+                logoObj.y = -logo.height;
+            }
+        });
+        requestAnimationFrame(createRain);
+    }
 }
 
 function createPieChart(container, municipalityName) {
