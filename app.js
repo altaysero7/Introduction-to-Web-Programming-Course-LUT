@@ -4,6 +4,7 @@
 // Referencing: https://gisgeography.com/map-legend/
 // Referencing: https://www.highcharts.com/demo
 // Referencing: https://commons.wikimedia.org/wiki/File:Flag_of_Finland.svg
+// Referencing: https://medium.com/analytics-vidhya/python-code-on-holt-winters-forecasting-3843808a9873
 
 const jsonQueryElections = {
     "query": [
@@ -716,6 +717,8 @@ let geoData;
 let allElectionData;
 let positiveMigrationsData;
 let negativeMigrationsData;
+const upcomingElections = [2025, 2029];
+let currentPredictionIndex = 0;
 
 document.addEventListener('DOMContentLoaded', async (event) => {
     map = L.map('map', { minZoom: -3 });
@@ -743,6 +746,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             updateMapForYear(selectedYear); // changing the elections data and re-creating the map
             updateMainlandFinlandResults()
         });
+    });
+
+    document.getElementById('predict-button').addEventListener('click', function() {
+        if (currentPredictionIndex < upcomingElections.length) {
+            const yearToPredict = upcomingElections[currentPredictionIndex];
+            predictNextElection(yearToPredict);
+            currentPredictionIndex++;
+            if (currentPredictionIndex === upcomingElections.length) {
+                this.style.display = 'none';
+            }
+        }
     });
 
     document.getElementById('back-button').addEventListener('click', function () {
@@ -989,27 +1003,27 @@ function municipalityHasData(municipalityName) {
 }
 
 const getWinningPartyColor = (municipalityResults, year) => {
-    const results2021 = municipalityResults[year];
+    const results = municipalityResults[year];
     let highestPercentage = 0;
     let winningParty = '';
     let knownPartiesTotalVotes = 0;  // sum of votes for known parties
 
     // total votes for known parties
-    for (const [party, votes] of Object.entries(results2021)) {
+    for (const [party, votes] of Object.entries(results)) {
         if (party !== 'Total') {
             knownPartiesTotalVotes += votes;
         }
     }
 
     // votes categorized under "Others"
-    const otherVotes = results2021['Total'] - knownPartiesTotalVotes;
-    const otherPercentage = (otherVotes / results2021['Total']) * 100;
+    const otherVotes = results['Total'] - knownPartiesTotalVotes;
+    const otherPercentage = (otherVotes / results['Total']) * 100;
 
     // finding the winning party or if "Others" have the highest percentage
-    for (const [party, votes] of Object.entries(results2021)) {
+    for (const [party, votes] of Object.entries(results)) {
         if (party === 'Total') continue; // skiping the 'Total' entry.
 
-        const votePercentage = (votes / results2021['Total']) * 100;
+        const votePercentage = (votes / results['Total']) * 100;
 
         if (votePercentage > highestPercentage) {
             highestPercentage = votePercentage;
@@ -1026,6 +1040,90 @@ const getWinningPartyColor = (municipalityResults, year) => {
     return partiesInfo[winningParty].color;
 };
 
+function predictNextElection(yearToPredict) {
+    updateElectionDataWithPrediction(yearToPredict);
+
+    const newButton = document.createElement("button");
+    newButton.innerHTML = `${yearToPredict}`;
+    newButton.classList.add("year-btn", "new-predicted-btn");
+    newButton.setAttribute("data-year", yearToPredict);
+
+    newButton.addEventListener('click', function() {
+        selectedYear = this.getAttribute('data-year');
+        updateMapForYear(selectedYear);  // changing the elections data and re-creating the map
+        updateMainlandFinlandResults();
+    });
+
+    document.querySelector(".year-buttons").appendChild(newButton);
+}
+
+function predictElectionBasedOnPreviousData(electionData, yearToPredict) {
+    // for this prediction, Holt's linear trend method will me applied
+    // for sure this is not so correct prediction but was interesting to implement
+    const predictionResults = {};
+
+    for (const municipality in electionData) {
+        predictionResults[municipality] = predictionResults[municipality] || {};
+
+        const history = electionData[municipality];
+        const years = Object.keys(history).map(Number);
+        years.sort((a, b) => a - b);
+
+        const numberOfElections = years.length;
+
+        const level = {};
+        const trend = {};
+        const initialTrendPeriod = 3; // every last three elections
+
+        // alpha is for the level component, and beta is for the trend component
+        const alpha = 0.5;
+        const beta = 0.3;
+
+        for (let i = 0; i < numberOfElections; i++) {
+            const year = years[i];
+            const yearData = history[year];
+
+            for (const party in yearData) {
+                if (party !== 'Total') {
+                    if (!level[party]) {
+                        // initializing level and trend
+                        level[party] = yearData[party];
+                        trend[party] = (i >= initialTrendPeriod) ? (yearData[party] - history[years[i - initialTrendPeriod]][party]) / initialTrendPeriod : 0;
+                    } else {
+                        // updating level and trend with Holt's method
+                        const prevLevel = level[party];
+                        level[party] = alpha * yearData[party] + (1 - alpha) * (prevLevel + trend[party]);
+                        trend[party] = beta * (level[party] - prevLevel) + (1 - beta) * trend[party];
+                    }
+                }
+            }
+        }
+
+        const predictedYearData = { Total: 0 };
+        const yearsIntoFuture = yearToPredict - years[years.length - 1];
+
+        // creating predictions for the next year based on level and trend components
+        for (const party in level) {
+            // Holt's method prediction for future points
+            const prediction = Math.round(level[party] + yearsIntoFuture * trend[party]);
+            predictedYearData[party] = prediction > 0 ? prediction : 0; // Avoid negative predictions
+            predictedYearData['Total'] += predictedYearData[party];
+        }
+
+        predictionResults[municipality][yearToPredict] = predictedYearData;
+    }
+
+    return predictionResults;
+}
+
+function updateElectionDataWithPrediction(predictedYear) {
+    const newPredictions = predictElectionBasedOnPreviousData(allElectionData, predictedYear);
+
+    for (const municipality in newPredictions) {
+        allElectionData[municipality][predictedYear] = newPredictions[municipality][predictedYear];
+    }
+}
+
 function createMainlandFinlandResultsControl() {
     // info panel for whole finland election results
     const ElectionResultsControl = L.Control.extend({
@@ -1037,14 +1135,14 @@ function createMainlandFinlandResultsControl() {
             const container = L.DomUtil.create('div', 'election-results-control');
             Object.assign(container.style, {
                 backgroundColor: '#f9f9f9',
-                width: '150px',
-                height: '300px',
+                width: '250px',
+                height: '330px',
                 padding: '5px 10px',
                 border: '1px solid',
                 borderRadius: '5px',
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
                 color: '#333',
-                fontSize: '12px',
+                fontSize: '14px',
                 overflow: 'hidden',
             });
 
@@ -1093,7 +1191,7 @@ function updateMainlandFinlandResults() {
             </div>`;
     }
     contentHTML += '</div>';
-    contentHTML += '<div id="mini-pie-chart" style="height: 100px; width: 150px;"></div>'; // smaller pie chart
+    contentHTML += '<div id="mini-pie-chart" style="height: 100px; width: 250px;"></div>'; // smaller pie chart
 
     const resultsContainer = document.getElementById('mainland-finland-results');
     if (resultsContainer) {

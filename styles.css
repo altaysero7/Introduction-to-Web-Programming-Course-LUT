@@ -1,5 +1,6 @@
 /* Referencing: week 5 and week 6 source codes in the lecture notes */
 /* Referencing: https://fontawesome.com/icons */
+/* Referencing: https://www.browserstack.com/guide/ideal-screen-sizes-for-responsive-design */
 
 #map {
     height: 97vh;
@@ -93,10 +94,111 @@
     color: white;
 }
 
+.new-predicted-btn {
+    background-color: #f90;
+}
+
+.new-predicted-btn:hover {
+    background-color: #ffaa00;
+}
+
+#predict-button {
+    background-color: #f90;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition-duration: 0.4s;
+}
+
 #charts {
     display: none;
 }
 
 #back-button {
     display: none;
+}
+
+/* mobile and tablet view */
+@media screen and (max-width: 1024px) {
+    #year-selector {
+        width: 50px;
+    }
+
+    #year-label {
+        font-size: 10px;
+        font-weight: 1000;
+        margin-bottom: 5px;
+    }
+
+    .year-buttons {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .year-btn {
+        font-size: 9px;
+        padding: 4px 8px;
+        margin: 3px 0;
+        width: 100%;
+    }
+
+    #predict-button {
+        font-size: 9px;
+        padding: 4px 8px;
+        margin: 3px 0;
+    }
+
+    .flag-icon {
+        bottom: 205px !important;
+    }
+
+    .flag-icon img {
+        width: 70px !important;
+        height: 43px !important;
+    }
+
+    .election-results-control {
+        width: 90px !important;
+        height: 280px !important;
+        padding: 3px 5px !important;
+        font-size: 10px !important;
+    }
+
+    #mini-pie-chart {
+        height: 75px !important;
+        width: 90px !important;
+    }
+
+    #map-legend {
+        bottom: 40px;
+        width: 75px;
+        right: 5px;
+        padding: 5px;
+        border-radius: 5px;
+    }
+
+    .map-legend-divider {
+        margin: 2px 0;
+        border-bottom: 1px solid #333;
+        width: 90%;
+    }
+
+    .map-legend-key {
+        margin-bottom: 1px;
+    }
+
+    .map-legend-color {
+        width: 10px;
+        height: 5px;
+        margin-right: 5px;
+    }
 }
