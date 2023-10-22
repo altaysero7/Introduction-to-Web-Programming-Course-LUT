@@ -41,7 +41,8 @@ let currentPredictionIndex = 0;
 // ### INITIAL CONTENT LOAD/UPDATE STARTS ###
 document.addEventListener('DOMContentLoaded', async (event) => {
     map = L.map('map', {
-        minZoom: -3,
+        maxZoom: 7,
+        minZoom: 4.5,
         preferCanvas: true
     });
 
@@ -55,8 +56,8 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     await fetchMigrationData();
     createMap(geoData, allElectionData);
     createMapLegend();
-    const mainlandFinlandResultsControl = createMainlandFinlandResultsControl();
-    map.addControl(mainlandFinlandResultsControl);
+    map.addControl(createMainlandFinlandResultsControl());
+    map.addControl(createMapHeaderControl());
     updateMainlandFinlandResults()
     const flagControl = createFlagControl();
     flagControl.addTo(map);
@@ -103,11 +104,11 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         document.getElementById('download-map').style.display = 'block';
 
         if (history.state && history.state.municipality) {
-            history.back(); // Revert to previous state
+            history.back(); // reverting to previous state
         } else {
             // cleaning up the URL to its base form without any query parameters
             const originalLocation = location.protocol + '//' + location.host + location.pathname;
-            history.replaceState(null, "", originalLocation); // Replaces the current history entry with the original location
+            history.replaceState(null, "", originalLocation); // replacing the current history entry with the original location
         }
     });
 });
@@ -253,7 +254,7 @@ const processElectionsData = (data) => {
     // sorted municipalities
     municipalityKeys.forEach(({ originalKey, numericKey }, municipalityIndex) => {
         const municipalityLabel = municipalities[originalKey];
-        const cleanMunicipalityLabel = municipalityLabel === 'Mainland Finland' ? municipalityLabel : municipalityLabel.substring(4); // Removing the first four characters (city coding)
+        const cleanMunicipalityLabel = municipalityLabel === 'Mainland Finland' ? municipalityLabel : municipalityLabel.substring(4); // removing the first four characters (city coding)
 
         const municipalityResults = {};
         results[cleanMunicipalityLabel] = municipalityResults;
@@ -448,13 +449,48 @@ function predictElectionBasedOnPreviousData(electionData, yearToPredict) {
 
         const predictedYearData = { Total: 0 };
         const yearsIntoFuture = yearToPredict - years[years.length - 1];
+        let sumPredictedVotes = 0;
 
         // creating predictions for the next year based on level and trend components
         for (const party in level) {
-            // Holt's method prediction for future points
+             // Holt's method prediction for future points
             const prediction = Math.round(level[party] + yearsIntoFuture * trend[party]);
-            predictedYearData[party] = prediction > 0 ? prediction : 0; // Avoid negative predictions
-            predictedYearData['Total'] += predictedYearData[party];
+            predictedYearData[party] = prediction > 0 ? prediction : 0; // avoiding negative predictions
+            sumPredictedVotes += predictedYearData[party];
+        }
+
+        const othersVotes = history[years[years.length - 1]]['Total'] - sumPredictedVotes;
+        let remainingVotes = othersVotes;
+
+        // considering Others proportion
+        for (const party in level) {
+            if (remainingVotes <= 0) {
+                break;
+            }
+            const proportion = predictedYearData[party] / sumPredictedVotes;
+            const votesToDeduct = Math.floor(othersVotes * proportion);
+            const newVoteCount = predictedYearData[party] - votesToDeduct;
+
+            predictedYearData[party] = newVoteCount >= 0 ? newVoteCount : 0;
+            remainingVotes -= votesToDeduct;
+        }
+
+        if (remainingVotes > 0) {
+            const partiesSorted = Object.keys(level).sort((a, b) => predictedYearData[b] - predictedYearData[a]);
+            for (const party of partiesSorted) {
+                if (remainingVotes <= 0) {
+                    break;
+                }
+                if (predictedYearData[party] > 0) {
+                    predictedYearData[party] -= 1;
+                    remainingVotes--;
+                }
+            }
+        }
+
+        predictedYearData['Total'] = sumPredictedVotes - othersVotes;
+        if (predictedYearData['Total'] < 0) {
+            predictedYearData['Total'] = 0;
         }
 
         predictionResults[municipality][yearToPredict] = predictedYearData;
@@ -474,6 +510,34 @@ function updateElectionDataWithPrediction(predictedYear) {
 
 
 // ### CREATE MAP LEGENDS STARTS ###
+function createMapHeaderControl() {
+    const MapHeaderControl = L.Control.extend({
+        options: {
+            position: 'topleft' // default position, we will override this with CSS
+        },
+
+        onAdd: function (map) {
+            const container = L.DomUtil.create('div', 'map-header-control');
+            Object.assign(container.style, {
+                backgroundColor: 'rgba(0, 68, 156, 0.8)',
+                color: 'white',
+                padding: '5px 10px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                borderRadius: '3px',
+                width: '40%',
+            });
+
+            container.textContent = 'MUNICIPALITY ELECTIONS';
+            L.DomEvent.disableClickPropagation(container);
+
+            return container;
+        }
+    });
+
+    return new MapHeaderControl();
+}
+
 function createMainlandFinlandResultsControl() {
     // info panel for whole finland election results
     const ElectionResultsControl = L.Control.extend({
@@ -653,6 +717,7 @@ function displayMunicipalityData(municipalityName) {
     rainCanvas.style.top = '0';
     rainCanvas.style.left = '0';
     rainCanvas.style.zIndex = '1';
+    rainCanvas.style.backgroundColor = 'black';
     chartsContainer.appendChild(rainCanvas);
 
     initializeRainingEffect(rainCanvas.id);
@@ -703,60 +768,83 @@ function initializeRainingEffect(canvasId) {
     const canvas = document.getElementById(canvasId);
     const context = canvas.getContext("2d");
 
+    let canvasWidth = canvas.width;
+    let canvasHeight = canvas.height;
+    let animationFrameId = null;
+
     function setCanvasSize() {
         // covering the full page
-        canvas.width = document.documentElement.clientWidth;
-        canvas.height = document.documentElement.scrollHeight;
+        canvasWidth = document.documentElement.clientWidth;
+        canvasHeight = document.documentElement.scrollHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+    }
+
+    function throttledSetCanvasSize() {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(setCanvasSize, 250);
     }
 
     setCanvasSize();
 
-    self.addEventListener('resize', function () {
-        setCanvasSize();
-
-        logos.forEach(logoObj => {
-            logoObj.x = Math.random() * canvas.width;
-            logoObj.y = Math.random() * canvas.height - canvas.height;
-        });
-    });
+    self.addEventListener('resize', throttledSetCanvasSize, false);
 
     const numLogos = 20;
     const logos = [];
-    const fixedFallSpeed = 0.1;
-    const fixedSideSpeed = 0;
+    const fixedFallSpeed = 0.6;
     const scale = 0.1;
 
     for (let i = 0; i < numLogos; i++) {
         const logo = new Image();
         logo.src = partyLogos[i % partyLogos.length];
-        logo.onload = createRain;
-        logos.push({
-            image: logo,
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height - canvas.height,
-            vx: fixedSideSpeed,
-            vy: fixedFallSpeed,
-        });
+        logo.onload = () => {
+            logos.push({
+                image: logo,
+                x: Math.random() * canvasWidth,
+                y: Math.random() * canvasHeight - canvasHeight,
+                vy: fixedFallSpeed,
+            });
+            // starting the animation if it's the first logo
+            if (logos.length === 1) {
+                animationLoop();
+            }
+        };
     }
 
-    function createRain() {
-        context.fillStyle = "rgba(0,0,0,0.1)";
-        context.fillRect(0, 0, canvas.width, canvas.height);
+    function animationLoop() {
+        // clearing the previous frame
+        context.clearRect(0, 0, canvasWidth, canvasHeight);
 
+        // drawing and updating each logo's position
         logos.forEach(logoObj => {
-            const logo = logoObj.image;
-            context.drawImage(logo, logoObj.x, logoObj.y, logo.width * scale, logo.height * scale);
+            context.drawImage(logoObj.image, logoObj.x, logoObj.y, logoObj.image.width * scale, logoObj.image.height * scale);
 
-            logoObj.x += logoObj.vx;
             logoObj.y += logoObj.vy;
 
-            if (logoObj.y > canvas.height) {
-                logoObj.x = Math.random() * canvas.width;
-                logoObj.y = -logo.height;
+            if (logoObj.y > canvasHeight) {
+                logoObj.x = Math.random() * canvasWidth;
+                logoObj.y = -logoObj.image.height * scale;
             }
         });
-        requestAnimationFrame(createRain);
+
+        // next frame
+        animationFrameId = requestAnimationFrame(animationLoop);
     }
+
+    function stopAnimation() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            stopAnimation(); // stoping the animation when the tab is not visible
+        } else {
+            animationLoop(); // restarting the animation when the tab becomes visible again
+        }
+    });
 }
 // ### CREATE DYNAMIC RAIN ENDS ###
 
@@ -1141,7 +1229,7 @@ function createCombinedChart(container, municipalityName) {
         };
     });
 
-    // Process known parties
+    // processing known parties
     parties.forEach(party => {
         const data = categories.map(year => {
             const totalVotes = municipalityData[year]['Total'] || 1;

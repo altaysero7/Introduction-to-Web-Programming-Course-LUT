@@ -10,6 +10,17 @@
     outline: none;
 }
 
+.leaflet-top.leaflet-left {
+    width: 100%;
+}
+
+.map-header-control {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 #map-legend {
     position: absolute;
     bottom: 100px;
@@ -185,6 +196,10 @@
 /* mobile and tablet view */
 @media screen and (max-width: 1024px) {
 
+    .map-header-control {
+        left: 40%;
+    }
+
     #charts {
         padding: 20px;
     }
@@ -271,5 +286,12 @@
 
     #back-button, #download-charts {
         width: 50%;
+    }
+}
+
+/* tablet view specific header */
+@media screen and (min-width: 760px) and (max-width: 1024px) {
+    .map-header-control {
+        left: 50%;
     }
 }
