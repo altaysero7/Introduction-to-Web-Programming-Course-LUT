@@ -5,701 +5,12 @@
 // Referencing: https://www.highcharts.com/demo
 // Referencing: https://commons.wikimedia.org/wiki/File:Flag_of_Finland.svg
 // Referencing: https://medium.com/analytics-vidhya/python-code-on-holt-winters-forecasting-3843808a9873
+// Referencing: https://blog.logrocket.com/export-react-components-as-images-html2canvas/#:~:text=html2canvas%20is%20a%20JavaScript%20library,is%20present%20on%20the%20page.
 
-const jsonQueryElections = {
-    "query": [
-        {
-            "code": "Vuosi",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "1996",
-                    "2000",
-                    "2004",
-                    "2008",
-                    "2012",
-                    "2017",
-                    "2021"
-                ]
-            }
-        },
-        {
-            "code": "Alue",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "000000",
-                    "011091",
-                    "021049",
-                    "021078",
-                    "021092",
-                    "021106",
-                    "021186",
-                    "021235",
-                    "021245",
-                    "021257",
-                    "021444",
-                    "021543",
-                    "021638",
-                    "021858",
-                    "022224",
-                    "022434",
-                    "022505",
-                    "022710",
-                    "022753",
-                    "022927",
-                    "023018",
-                    "023149",
-                    "023407",
-                    "023504",
-                    "023611",
-                    "023616",
-                    "023755",
-                    "031202",
-                    "031680",
-                    "031734",
-                    "031853",
-                    "032400",
-                    "032423",
-                    "032430",
-                    "032445",
-                    "032481",
-                    "032503",
-                    "032529",
-                    "032577",
-                    "032895",
-                    "033019",
-                    "033284",
-                    "033304",
-                    "033322",
-                    "033480",
-                    "033538",
-                    "033561",
-                    "033631",
-                    "033636",
-                    "033704",
-                    "033738",
-                    "033761",
-                    "033833",
-                    "033918",
-                    "041079",
-                    "041609",
-                    "041684",
-                    "042050",
-                    "042102",
-                    "042214",
-                    "042886",
-                    "043051",
-                    "043181",
-                    "043230",
-                    "043271",
-                    "043484",
-                    "043531",
-                    "043608",
-                    "043747",
-                    "043783",
-                    "061061",
-                    "061098",
-                    "061109",
-                    "061111",
-                    "061398",
-                    "061694",
-                    "062016",
-                    "062082",
-                    "062165",
-                    "062560",
-                    "063081",
-                    "063086",
-                    "063103",
-                    "063142",
-                    "063169",
-                    "063316",
-                    "063433",
-                    "063576",
-                    "063781",
-                    "063834",
-                    "063981",
-                    "071211",
-                    "071418",
-                    "071536",
-                    "071604",
-                    "071837",
-                    "071908",
-                    "071980",
-                    "072020",
-                    "072108",
-                    "072508",
-                    "072562",
-                    "072581",
-                    "072790",
-                    "073143",
-                    "073177",
-                    "073250",
-                    "073291",
-                    "073619",
-                    "073635",
-                    "073702",
-                    "073887",
-                    "073922",
-                    "073936",
-                    "081075",
-                    "081153",
-                    "081285",
-                    "081286",
-                    "081405",
-                    "081491",
-                    "081740",
-                    "082593",
-                    "083046",
-                    "083097",
-                    "083178",
-                    "083213",
-                    "083416",
-                    "083441",
-                    "083489",
-                    "083507",
-                    "083580",
-                    "083588",
-                    "083623",
-                    "083624",
-                    "083681",
-                    "083689",
-                    "083700",
-                    "083739",
-                    "083768",
-                    "083831",
-                    "083935",
-                    "091140",
-                    "091167",
-                    "091297",
-                    "091915",
-                    "092276",
-                    "092309",
-                    "092422",
-                    "092541",
-                    "092749",
-                    "092778",
-                    "093090",
-                    "093146",
-                    "093171",
-                    "093176",
-                    "093204",
-                    "093239",
-                    "093260",
-                    "093263",
-                    "093402",
-                    "093420",
-                    "093426",
-                    "093595",
-                    "093607",
-                    "093686",
-                    "093687",
-                    "093707",
-                    "093762",
-                    "093844",
-                    "093848",
-                    "093857",
-                    "093921",
-                    "093925",
-                    "101231",
-                    "101272",
-                    "101598",
-                    "101743",
-                    "101905",
-                    "102005",
-                    "102010",
-                    "102145",
-                    "102232",
-                    "102233",
-                    "102301",
-                    "102399",
-                    "102408",
-                    "102499",
-                    "103052",
-                    "103074",
-                    "103151",
-                    "103152",
-                    "103217",
-                    "103218",
-                    "103236",
-                    "103280",
-                    "103287",
-                    "103288",
-                    "103300",
-                    "103403",
-                    "103421",
-                    "103440",
-                    "103475",
-                    "103545",
-                    "103584",
-                    "103599",
-                    "103759",
-                    "103846",
-                    "103849",
-                    "103893",
-                    "103924",
-                    "103934",
-                    "103946",
-                    "103989",
-                    "111179",
-                    "112182",
-                    "112249",
-                    "112410",
-                    "112500",
-                    "112992",
-                    "113077",
-                    "113172",
-                    "113216",
-                    "113226",
-                    "113256",
-                    "113265",
-                    "113275",
-                    "113312",
-                    "113435",
-                    "113495",
-                    "113592",
-                    "113601",
-                    "113729",
-                    "113850",
-                    "113892",
-                    "113931",
-                    "121205",
-                    "121244",
-                    "121564",
-                    "121678",
-                    "122069",
-                    "122139",
-                    "122208",
-                    "122290",
-                    "122305",
-                    "122425",
-                    "122494",
-                    "122535",
-                    "122563",
-                    "122765",
-                    "122977",
-                    "123009",
-                    "123071",
-                    "123072",
-                    "123105",
-                    "123317",
-                    "123436",
-                    "123483",
-                    "123578",
-                    "123615",
-                    "123620",
-                    "123625",
-                    "123626",
-                    "123630",
-                    "123691",
-                    "123697",
-                    "123746",
-                    "123748",
-                    "123777",
-                    "123785",
-                    "123791",
-                    "123832",
-                    "123859",
-                    "123889",
-                    "131240",
-                    "131698",
-                    "131851",
-                    "132241",
-                    "132320",
-                    "132758",
-                    "133047",
-                    "133148",
-                    "133261",
-                    "133273",
-                    "133498",
-                    "133583",
-                    "133614",
-                    "133683",
-                    "133732",
-                    "133742",
-                    "133751",
-                    "133845",
-                    "133854",
-                    "133890",
-                    "133976",
-                ]
-            }
-        },
-        {
-            "code": "Puolue",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "00",
-                    "03",
-                    "01",
-                    "04",
-                    "02",
-                    "05",
-                    "06",
-                    "07",
-                    "08"
-                ]
-            }
-        },
-        {
-            "code": "Tiedot",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "aanet_yht"
-                ]
-            }
-        }
-    ],
-    "response": {
-        "format": "json-stat2"
-    }
-}
+// ### GLOBAL VARIABLES STARTS ###
+const urlJsonQueryElections = '../jsonQueries/electionQuery.json';
+const urlJsonQueryMigrations = '../jsonQueries/migrationQuery.json';
 
-const jsonQueryMigrations = {
-    "query": [
-        {
-            "code": "Tuloalue",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "SSS",
-                    "KU020",
-                    "KU005",
-                    "KU009",
-                    "KU010",
-                    "KU016",
-                    "KU018",
-                    "KU019",
-                    "KU035",
-                    "KU043",
-                    "KU046",
-                    "KU047",
-                    "KU049",
-                    "KU050",
-                    "KU051",
-                    "KU052",
-                    "KU060",
-                    "KU061",
-                    "KU062",
-                    "KU065",
-                    "KU069",
-                    "KU071",
-                    "KU072",
-                    "KU074",
-                    "KU075",
-                    "KU076",
-                    "KU077",
-                    "KU078",
-                    "KU079",
-                    "KU081",
-                    "KU082",
-                    "KU086",
-                    "KU111",
-                    "KU090",
-                    "KU091",
-                    "KU097",
-                    "KU098",
-                    "KU102",
-                    "KU103",
-                    "KU105",
-                    "KU106",
-                    "KU108",
-                    "KU109",
-                    "KU139",
-                    "KU140",
-                    "KU142",
-                    "KU143",
-                    "KU145",
-                    "KU146",
-                    "KU153",
-                    "KU148",
-                    "KU149",
-                    "KU151",
-                    "KU152",
-                    "KU165",
-                    "KU167",
-                    "KU169",
-                    "KU170",
-                    "KU171",
-                    "KU172",
-                    "KU176",
-                    "KU177",
-                    "KU178",
-                    "KU179",
-                    "KU181",
-                    "KU182",
-                    "KU186",
-                    "KU202",
-                    "KU204",
-                    "KU205",
-                    "KU208",
-                    "KU211",
-                    "KU213",
-                    "KU214",
-                    "KU216",
-                    "KU217",
-                    "KU218",
-                    "KU224",
-                    "KU226",
-                    "KU230",
-                    "KU231",
-                    "KU232",
-                    "KU233",
-                    "KU235",
-                    "KU236",
-                    "KU239",
-                    "KU240",
-                    "KU320",
-                    "KU241",
-                    "KU322",
-                    "KU244",
-                    "KU245",
-                    "KU249",
-                    "KU250",
-                    "KU256",
-                    "KU257",
-                    "KU260",
-                    "KU261",
-                    "KU263",
-                    "KU265",
-                    "KU271",
-                    "KU272",
-                    "KU273",
-                    "KU275",
-                    "KU276",
-                    "KU280",
-                    "KU284",
-                    "KU285",
-                    "KU286",
-                    "KU287",
-                    "KU288",
-                    "KU290",
-                    "KU291",
-                    "KU295",
-                    "KU297",
-                    "KU300",
-                    "KU301",
-                    "KU304",
-                    "KU305",
-                    "KU312",
-                    "KU316",
-                    "KU317",
-                    "KU318",
-                    "KU398",
-                    "KU399",
-                    "KU400",
-                    "KU407",
-                    "KU402",
-                    "KU403",
-                    "KU405",
-                    "KU408",
-                    "KU410",
-                    "KU416",
-                    "KU417",
-                    "KU418",
-                    "KU420",
-                    "KU421",
-                    "KU422",
-                    "KU423",
-                    "KU425",
-                    "KU426",
-                    "KU444",
-                    "KU430",
-                    "KU433",
-                    "KU434",
-                    "KU435",
-                    "KU436",
-                    "KU438",
-                    "KU440",
-                    "KU441",
-                    "KU475",
-                    "KU478",
-                    "KU480",
-                    "KU481",
-                    "KU483",
-                    "KU484",
-                    "KU489",
-                    "KU491",
-                    "KU494",
-                    "KU495",
-                    "KU498",
-                    "KU499",
-                    "KU500",
-                    "KU503",
-                    "KU504",
-                    "KU505",
-                    "KU508",
-                    "KU507",
-                    "KU529",
-                    "KU531",
-                    "KU535",
-                    "KU536",
-                    "KU538",
-                    "KU541",
-                    "KU543",
-                    "KU545",
-                    "KU560",
-                    "KU561",
-                    "KU562",
-                    "KU563",
-                    "KU564",
-                    "KU309",
-                    "KU576",
-                    "KU577",
-                    "KU578",
-                    "KU445",
-                    "KU580",
-                    "KU581",
-                    "KU599",
-                    "KU583",
-                    "KU854",
-                    "KU584",
-                    "KU588",
-                    "KU592",
-                    "KU593",
-                    "KU595",
-                    "KU598",
-                    "KU601",
-                    "KU604",
-                    "KU607",
-                    "KU608",
-                    "KU609",
-                    "KU611",
-                    "KU638",
-                    "KU614",
-                    "KU615",
-                    "KU616",
-                    "KU619",
-                    "KU620",
-                    "KU623",
-                    "KU624",
-                    "KU625",
-                    "KU626",
-                    "KU630",
-                    "KU631",
-                    "KU635",
-                    "KU636",
-                    "KU678",
-                    "KU710",
-                    "KU680",
-                    "KU681",
-                    "KU683",
-                    "KU684",
-                    "KU686",
-                    "KU687",
-                    "KU689",
-                    "KU691",
-                    "KU694",
-                    "KU697",
-                    "KU698",
-                    "KU700",
-                    "KU702",
-                    "KU704",
-                    "KU707",
-                    "KU729",
-                    "KU732",
-                    "KU734",
-                    "KU736",
-                    "KU790",
-                    "KU738",
-                    "KU739",
-                    "KU740",
-                    "KU742",
-                    "KU743",
-                    "KU746",
-                    "KU747",
-                    "KU748",
-                    "KU791",
-                    "KU749",
-                    "KU751",
-                    "KU753",
-                    "KU755",
-                    "KU758",
-                    "KU759",
-                    "KU761",
-                    "KU762",
-                    "KU765",
-                    "KU766",
-                    "KU768",
-                    "KU771",
-                    "KU777",
-                    "KU778",
-                    "KU781",
-                    "KU783",
-                    "KU831",
-                    "KU832",
-                    "KU833",
-                    "KU834",
-                    "KU837",
-                    "KU844",
-                    "KU845",
-                    "KU846",
-                    "KU848",
-                    "KU849",
-                    "KU850",
-                    "KU851",
-                    "KU853",
-                    "KU857",
-                    "KU858",
-                    "KU859",
-                    "KU886",
-                    "KU887",
-                    "KU889",
-                    "KU890",
-                    "KU892",
-                    "KU893",
-                    "KU895",
-                    "KU785",
-                    "KU905",
-                    "KU908",
-                    "KU092",
-                    "KU915",
-                    "KU918",
-                    "KU921",
-                    "KU922",
-                    "KU924",
-                    "KU925",
-                    "KU927",
-                    "KU931",
-                    "KU934",
-                    "KU935",
-                    "KU936",
-                    "KU941",
-                    "KU946",
-                    "KU976",
-                    "KU977",
-                    "KU980",
-                    "KU981",
-                    "KU989",
-                    "KU992"
-                ]
-            }
-        },
-        {
-            "code": "Vuosi",
-            "selection": {
-                "filter": "item",
-                "values": [
-                    "1996",
-                    "2000",
-                    "2004",
-                    "2008",
-                    "2012",
-                    "2017",
-                    "2021"
-                ]
-            }
-        }
-    ],
-    "response": {
-        "format": "json-stat2"
-    }
-}
-
-let map;
-let geoJson;
 const partiesInfo = {
     'KOK': { color: '#005cb7', wikiLink: 'https://en.wikipedia.org/wiki/National_Coalition_Party' },
     'SDP': { color: '#ff0606', wikiLink: 'https://en.wikipedia.org/wiki/Social_Democratic_Party_of_Finland' },
@@ -712,17 +23,27 @@ const partiesInfo = {
     'Others': { color: '#800080' },
     'No data': { color: '#808080' }
 };
-let selectedYear = '2021';
+const partyLogos = ['./assets/images/Nationale_Sammlungspartei_(Finnland)_logo.png', './assets/images/Sozialdemokratische_Partei_Finnlands_Logo.png', './assets/images/Keskusta.png', './assets/images/Perussuomalaiset_Logo.png', './assets/images/Vihreät.png', './assets/images/Vasemmistoliitto_Logo_2018.png', "./assets/images/Swedish_People's_Party_of_Finland_logo.png", './assets/images/Christian_Democrats_(Finland)_logo_2022.png']
+
+let map;
+let geoJson;
 let geoData;
 let allElectionData;
 let positiveMigrationsData;
 let negativeMigrationsData;
+
+let selectedYear = '2021';
 const upcomingElections = [2025, 2029];
 let currentPredictionIndex = 0;
-let partyLogos = ['./images/Nationale_Sammlungspartei_(Finnland)_logo.png', './images/Sozialdemokratische_Partei_Finnlands_Logo.png', './images/Keskusta.png', './images/Perussuomalaiset_Logo.png', './images/Vihreät.png', './images/Vasemmistoliitto_Logo_2018.png', "./images/Swedish_People's_Party_of_Finland_logo.png", './images/Christian_Democrats_(Finland)_logo_2022.png']
+// ### GLOBAL VARIABLES ENDS ###
 
+
+// ### INITIAL CONTENT LOAD/UPDATE STARTS ###
 document.addEventListener('DOMContentLoaded', async (event) => {
-    map = L.map('map', { minZoom: -3 });
+    map = L.map('map', {
+        minZoom: -3,
+        preferCanvas: true
+    });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap"
@@ -732,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     await fetchGeoData();
     await fetchAllElectionData();
     await fetchMigrationData();
-    updateMapForYear(selectedYear);
+    createMap(geoData, allElectionData);
     createMapLegend();
     const mainlandFinlandResultsControl = createMainlandFinlandResultsControl();
     map.addControl(mainlandFinlandResultsControl);
@@ -744,9 +65,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     yearButtons.forEach(button => {
         button.addEventListener('click', function () {
             selectedYear = this.getAttribute('data-year');
-            updateMapForYear(selectedYear); // changing the elections data and re-creating the map
+            createMap(geoData, allElectionData); // changing the elections data and re-creating the map
             updateMainlandFinlandResults()
         });
+    });
+
+    document.getElementById('download-map').addEventListener('click', function () {
+        downloadMap();
+    });
+
+    document.getElementById('download-charts').addEventListener('click', function () {
+        downloadCharts();
     });
 
     document.getElementById('predict-button').addEventListener('click', function () {
@@ -761,15 +90,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     });
 
     document.getElementById('back-button').addEventListener('click', function () {
-        // hiding charts and 'Back' button
+        // hiding charts and buttons
         document.getElementById('charts').style.display = 'none';
         this.style.display = 'none';
+        document.getElementById('download-charts').style.display = 'none';
 
         // showing the map and other elements again
         document.getElementById('map').style.display = 'block';
         document.getElementById('map-legend').style.display = 'block';
         document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'block');
         document.getElementById('year-selector').style.display = 'block';
+        document.getElementById('download-map').style.display = 'block';
 
         if (history.state && history.state.municipality) {
             history.back(); // Revert to previous state
@@ -785,18 +116,23 @@ self.addEventListener('popstate', function (event) {
     if (event.state && event.state.municipality) {
         history.back();
     } else {
-        // hiding charts and 'Back' button
+        // hiding charts and buttons
         document.getElementById('charts').style.display = 'none';
         document.getElementById('back-button').style.display = 'none';
+        document.getElementById('download-charts').style.display = 'none';
 
         // showing the map and other elements again
         document.getElementById('map').style.display = 'block';
         document.getElementById('map-legend').style.display = 'block';
         document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'block');
         document.getElementById('year-selector').style.display = 'block';
+        document.getElementById('download-map').style.display = 'block';
     }
 });
+// ### INITIAL CONTENT LOAD/UPDATE ENDS ###
 
+
+// ### FETCH DATA STARTS ###
 async function fetchGeoData() {
     const urlGeoJson = 'https://geo.stat.fi/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=tilastointialueet:kunta4500k&outputFormat=json&srsName=EPSG:4326';
     try {
@@ -809,6 +145,10 @@ async function fetchGeoData() {
 
 async function fetchAllElectionData() {
     const urlElections = 'https://pxdata.stat.fi:443/PxWeb/api/v1/en/StatFin/kvaa/statfin_kvaa_pxt_12g3.px';
+
+    const responseQuery = await fetch(urlJsonQueryElections);
+    const jsonQueryElections = await responseQuery.json();
+
     try {
         const response = await fetch(urlElections, {
             method: 'POST',
@@ -824,6 +164,9 @@ async function fetchAllElectionData() {
 
 async function fetchMigrationData() {
     const urlMigrations = 'https://pxdata.stat.fi:443/PxWeb/api/v1/en/StatFin/muutl/statfin_muutl_pxt_11a1.px';
+
+    const responseQuery = await fetch(urlJsonQueryMigrations);
+    const jsonQueryMigrations = await responseQuery.json();
 
     const jsonQueryNegativeMigration = JSON.parse(JSON.stringify(jsonQueryMigrations));
     jsonQueryNegativeMigration.query[0].code = 'Lähtöalue';
@@ -849,13 +192,14 @@ async function fetchMigrationData() {
         positiveMigrationsData = processMigrationData(positiveMigrationData, 'Tuloalue');
         negativeMigrationsData = processMigrationData(negativeMigrationData, 'Lähtöalue');
 
-        console.log(positiveMigrationsData);
-
     } catch (error) {
         console.log("Error happened while fetching: ", error);
     }
 }
+// ### FETCH DATA ENDS ###
 
+
+// ### PROCESS FETCHED DATA STARTS ###
 const processMigrationData = (data, type) => {
     const municipalities = data.dimension[type].category.label;
     const years = data.dimension.Vuosi.category.label;
@@ -929,14 +273,12 @@ const processElectionsData = (data) => {
             });
         });
     });
-    console.log(results);
     return results;
 };
+// ### PROCESS FETCHED DATA ENDS ###
 
-function updateMapForYear(year) {
-    createMap(geoData, allElectionData, year);
-}
 
+// ### CREATE MAP STARTS ###
 function createMap(data, electionsInfo) {
     if (!data) {
         return;
@@ -979,8 +321,8 @@ const getCustomFeature = (feature, layer) => {
             history.pushState({ municipality: municipalityName }, "", newUrlPath);
         });
     } else {
-        layer.on('mouseover', function () {
-            this._path.style.cursor = 'not-allowed';
+        layer.on('mouseover', function (e) {
+            e.originalEvent.target.style.cursor = 'not-allowed';
         });
 
         layer.on('click', function (e) {
@@ -992,7 +334,8 @@ const getCustomFeature = (feature, layer) => {
             this.bindTooltip(tooltip);
         });
 
-        layer.on('mouseout', function () {
+        layer.on('mouseout', function (e) {
+            e.originalEvent.target.style.cursor = '';
             this.bindTooltip(municipalityName);
         });
     }
@@ -1040,7 +383,10 @@ const getWinningPartyColor = (municipalityResults, year) => {
 
     return partiesInfo[winningParty].color;
 };
+// ### CREATE MAP ENDS ###
 
+
+// ### PREDICT NEXT ELECTIONS STARTS ###
 function predictNextElection(yearToPredict) {
     updateElectionDataWithPrediction(yearToPredict);
 
@@ -1051,7 +397,7 @@ function predictNextElection(yearToPredict) {
 
     newButton.addEventListener('click', function () {
         selectedYear = this.getAttribute('data-year');
-        updateMapForYear(selectedYear);  // changing the elections data and re-creating the map
+        createMap(geoData, allElectionData);  // changing the elections data and re-creating the map
         updateMainlandFinlandResults();
     });
 
@@ -1124,7 +470,10 @@ function updateElectionDataWithPrediction(predictedYear) {
         allElectionData[municipality][predictedYear] = newPredictions[municipality][predictedYear];
     }
 }
+// ### PREDICT NEXT ELECTIONS ENDS ###
 
+
+// ### CREATE MAP LEGENDS STARTS ###
 function createMainlandFinlandResultsControl() {
     // info panel for whole finland election results
     const ElectionResultsControl = L.Control.extend({
@@ -1133,18 +482,19 @@ function createMainlandFinlandResultsControl() {
         },
 
         onAdd: function (map) {
+            const parentContainer = L.DomUtil.create('div', 'parent-election-results-control');
             const container = L.DomUtil.create('div', 'election-results-control');
             Object.assign(container.style, {
                 backgroundColor: '#f9f9f9',
                 width: '250px',
-                height: '330px',
+                height: '350px',
                 padding: '5px 10px',
                 border: '1px solid',
                 borderRadius: '5px',
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
                 color: '#333',
                 fontSize: '14px',
-                overflow: 'hidden',
+                overflow: 'hidden'
             });
 
             const header = document.createElement('div');
@@ -1157,7 +507,14 @@ function createMainlandFinlandResultsControl() {
             resultsContainer.id = 'mainland-finland-results';
             container.appendChild(resultsContainer);
 
-            return container;
+            const downloadBtn = document.createElement('button');
+            downloadBtn.id = 'download-map';
+            downloadBtn.innerText = 'Download Map';
+
+            parentContainer.appendChild(container);
+            parentContainer.appendChild(downloadBtn);
+
+            return parentContainer;
         }
     });
 
@@ -1166,16 +523,21 @@ function createMainlandFinlandResultsControl() {
 
 function updateMainlandFinlandResults() {
     const mainlandResults = allElectionData['Mainland Finland'][selectedYear];
-    let totalVotes = 0;
+    let knownPartiesTotalVotes = 0;
     const partyResults = {};
 
     for (const party in mainlandResults) {
         if (party !== 'Total') {
             const votes = mainlandResults[party];
-            totalVotes += votes;
+            knownPartiesTotalVotes += votes;
             partyResults[party] = votes;
         }
     }
+
+    // calculating the "Others" votes
+    const totalVotes = mainlandResults['Total'] || knownPartiesTotalVotes;
+    const othersVotes = totalVotes - knownPartiesTotalVotes;
+    partyResults['Others'] = othersVotes;
 
     const header = document.getElementById('results-header');
     if (header) {
@@ -1198,7 +560,7 @@ function updateMainlandFinlandResults() {
     if (resultsContainer) {
         resultsContainer.innerHTML = contentHTML;
 
-        createPieChart('mini-pie-chart', 'Mainland Finland');
+        createPieChart('mini-pie-chart', 'Mainland Finland', partyResults);
     }
 }
 
@@ -1254,7 +616,7 @@ function createFlagControl() {
         onAdd: function (map) {
             const container = L.DomUtil.create('div', 'flag-icon');
             const img = L.DomUtil.create('img', '', container);
-            img.src = './images/Flag_of_Finland.svg';
+            img.src = './assets/images/Flag_of_Finland.svg';
             img.style.width = '100px';
             img.style.height = '75px';
             img.style.paddingBottom = '85%';
@@ -1267,13 +629,17 @@ function createFlagControl() {
     });
     return new FlagControl();
 }
+// ### CREATE MAP LEGENDS ENDS ###
 
+
+// ### DISPLAY MUNICIPALITY DATA STARTS ###
 function displayMunicipalityData(municipalityName) {
     // hiding map and other elements
     document.getElementById('map').style.display = 'none';
     document.getElementById('map-legend').style.display = 'none';
     document.querySelectorAll('.year-buttons').forEach(el => el.style.display = 'none');
     document.getElementById('year-selector').style.display = 'none';
+    document.getElementById('download-map').style.display = 'none';
 
     // main container for charts and clearing any previous content
     const chartsContainer = document.getElementById('charts');
@@ -1325,12 +691,15 @@ function displayMunicipalityData(municipalityName) {
 
     // main container and back button visible
     chartsContainer.style.display = 'block';
-    const backButton = document.getElementById('back-button');
-    backButton.style.display = 'block';
+    document.getElementById('back-button').style.display = 'block';
+    document.getElementById('download-charts').style.display = 'block';
 }
+// ### DISPLAY MUNICIPALITY DATA ENDS ###
 
-// mostly from the matrix rain tutorial in week 7
+
+// ### CREATE DYNAMIC RAIN STARTS ###
 function initializeRainingEffect(canvasId) {
+    // mostly from the matrix rain tutorial in week 7
     const canvas = document.getElementById(canvasId);
     const context = canvas.getContext("2d");
 
@@ -1342,7 +711,7 @@ function initializeRainingEffect(canvasId) {
 
     setCanvasSize();
 
-    self.addEventListener('resize', function() {
+    self.addEventListener('resize', function () {
         setCanvasSize();
 
         logos.forEach(logoObj => {
@@ -1389,19 +758,32 @@ function initializeRainingEffect(canvasId) {
         requestAnimationFrame(createRain);
     }
 }
+// ### CREATE DYNAMIC RAIN ENDS ###
 
+
+// ### CREATE CHARTS STARTS ###
 function createPieChart(container, municipalityName) {
     const municipalityData = allElectionData[municipalityName][selectedYear];
+    let knownPartiesTotal = 0;
     const data = [];
 
     Object.entries(municipalityData).forEach(([party, voteCount]) => {
-        if (party !== 'Total') {
+        if (party !== 'Total' && partiesInfo[party]) {
+            knownPartiesTotal += voteCount;
             data.push({
                 name: party,
                 y: voteCount,
                 color: partiesInfo[party].color,
             });
         }
+    });
+
+    const othersVoteCount = municipalityData['Total'] - knownPartiesTotal;
+
+    data.push({
+        name: 'Others',
+        y: othersVoteCount,
+        color: partiesInfo['Others'].color,
     });
 
     Highcharts.chart(container, {
@@ -1413,7 +795,7 @@ function createPieChart(container, municipalityName) {
             height: container === 'mini-pie-chart' ? 90 : null,
         },
         title: {
-            text: container === 'mini-pie-chart' ? "" : `Election Results for ${municipalityName}`
+            text: container === 'mini-pie-chart' ? "" : `Election Results for ${municipalityName}, ${selectedYear}`
         },
         tooltip: {
             pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
@@ -1446,8 +828,10 @@ function createBarChart(container, municipalityName) {
     const categories = [];
     const data = [];
 
+    let knownPartiesTotal = 0;
     Object.entries(municipalityData).forEach(([party, voteCount]) => {
-        if (party !== 'Total') {
+        if (party !== 'Total' && partiesInfo[party]) {
+            knownPartiesTotal += voteCount;
             categories.push(party);
             data.push({
                 name: party,
@@ -1455,6 +839,14 @@ function createBarChart(container, municipalityName) {
                 color: partiesInfo[party].color,
             });
         }
+    });
+
+    const othersVoteCount = municipalityData['Total'] - knownPartiesTotal;
+    categories.push('Others');
+    data.push({
+        name: 'Others',
+        y: othersVoteCount,
+        color: partiesInfo['Others'].color,
     });
 
     Highcharts.chart(container, {
@@ -1505,11 +897,25 @@ function createTimeSeriesChart(container, municipalityName) {
     const firstYearParties = Object.keys(municipalityData[categories[0]]);
     const parties = firstYearParties.filter(party => party !== 'Total'); // excluding 'Total'
 
+    const othersData = categories.map(year => {
+        let knownPartiesTotal = 0;
+        parties.forEach(party => {
+            knownPartiesTotal += municipalityData[year][party] || 0; // returning vote count or 0 if no data exists
+        });
+        const totalVotes = municipalityData[year]['Total'] || 1;
+        const othersVotes = totalVotes - knownPartiesTotal;
+        const percentage = ((othersVotes / totalVotes) * 100).toFixed(2);
+        return {
+            y: othersVotes,
+            percentage: percentage
+        };
+    });
+
     parties.forEach(party => {
         const data = categories.map(year => {
             const totalVotes = municipalityData[year]['Total'] || 1;
             const partyVotes = municipalityData[year][party] || 0; // returning vote count or 0 if no data exists
-            const percentage = (partyVotes / totalVotes * 100).toFixed(2);
+            const percentage = ((partyVotes / totalVotes) * 100).toFixed(2);
 
             return {
                 y: partyVotes,
@@ -1522,6 +928,12 @@ function createTimeSeriesChart(container, municipalityName) {
             data: data,
             color: partiesInfo[party].color,
         });
+    });
+
+    series.push({
+        name: 'Others',
+        data: othersData,
+        color: partiesInfo['Others'].color
     });
 
     Highcharts.chart(container, {
@@ -1579,6 +991,16 @@ function createStackedAreaChart(container, municipalityName) {
     const firstYearParties = Object.keys(municipalityData[categories[0]]);
     const parties = firstYearParties.filter(party => party !== 'Total'); // excluding 'Total'
 
+    const othersData = categories.map(year => {
+        let knownPartiesTotal = 0;
+        parties.forEach(party => {
+            knownPartiesTotal += municipalityData[year][party] || 0;
+        });
+        const totalVotes = municipalityData[year]['Total'] || 0;
+        const othersVotes = totalVotes - knownPartiesTotal;
+        return othersVotes;
+    });
+
     parties.forEach(party => {
         const data = categories.map(year => {
             const partyVotes = municipalityData[year][party] || 0; // returning vote count or 0 if no data exists
@@ -1590,6 +1012,12 @@ function createStackedAreaChart(container, municipalityName) {
             data: data,
             color: partiesInfo[party].color,
         });
+    });
+
+    series.push({
+        name: 'Others',
+        data: othersData,
+        color: partiesInfo['Others'].color,
     });
 
     Highcharts.chart(container, {
@@ -1698,11 +1126,27 @@ function createCombinedChart(container, municipalityName) {
     const firstYearParties = Object.keys(municipalityData[categories[0]]);
     const parties = firstYearParties.filter(party => party !== 'Total'); // excluding 'Total'
 
+    const othersData = categories.map(year => {
+        let knownPartiesTotal = 0;
+        parties.forEach(party => {
+            knownPartiesTotal += municipalityData[year][party] || 0;
+        });
+        const totalVotes = municipalityData[year]['Total'] || 0;
+        const othersVotes = totalVotes - knownPartiesTotal;
+        const percentage = ((othersVotes / totalVotes) * 100).toFixed(2);
+
+        return {
+            y: othersVotes,
+            percentage: percentage
+        };
+    });
+
+    // Process known parties
     parties.forEach(party => {
         const data = categories.map(year => {
             const totalVotes = municipalityData[year]['Total'] || 1;
             const partyVotes = municipalityData[year][party] || 0;
-            const percentage = (partyVotes / totalVotes * 100).toFixed(2);
+            const percentage = ((partyVotes / totalVotes) * 100).toFixed(2);
 
             return {
                 y: partyVotes,
@@ -1716,6 +1160,13 @@ function createCombinedChart(container, municipalityName) {
             data: data,
             color: partiesInfo[party].color,
         });
+    });
+
+    series.push({
+        type: 'column',
+        name: 'Others',
+        data: othersData,
+        color: partiesInfo['Others'].color,
     });
 
     // migration data
@@ -1754,7 +1205,7 @@ function createCombinedChart(container, municipalityName) {
             categories: categories,
             crosshair: true
         }],
-        yAxis: [{
+        yAxis: [{ // first y-axis for the election data
             labels: {
                 format: '{value}',
                 style: {
@@ -1767,7 +1218,7 @@ function createCombinedChart(container, municipalityName) {
                     color: Highcharts.getOptions().colors[1]
                 }
             }
-        }, {
+        }, { // second y-axis for the migration data
             title: {
                 text: 'Number of Migrants',
                 style: {
@@ -1788,3 +1239,29 @@ function createCombinedChart(container, municipalityName) {
         series: series
     });
 }
+// ### CREATE CHARTS ENDS ###
+
+
+// ### DOWNLOAD MAP/CHARTS STARTS ###
+function downloadMap() {
+    const mapContent = document.getElementById('map-content');
+    html2canvas(mapContent, { useCORS: true }).then(function (canvas) {
+        const link = document.createElement('a');
+        link.download = `election_results_${selectedYear}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        link.remove();
+    });
+}
+
+function downloadCharts() {
+    const chartContent = document.getElementById('chart-content');
+    html2canvas(chartContent, { useCORS: true }).then(function (canvas) {
+        const link = document.createElement('a');
+        link.download = `charts_for_${history.state.municipality}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        link.remove();
+    });
+}
+// ### DOWNLOAD MAP/CHARTS ENDS ###
